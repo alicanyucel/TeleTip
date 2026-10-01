@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SonarQubeAnalysisProperties xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                              xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                              xmlns="http://www.sonarsource.com/msbuild/integration/2015/1">
+  <Property Name="sonar.projectKey">MyProject</Property>
+  <Property Name="sonar.projectName">Clean Architecture Template</Property>
+  <Property Name="sonar.exclusions">**/obj/**,**/bin/**,**/Migrations/**</Property>
+  <Property Name="sonar.coverage.exclusions">**/Tests/**,**/Program.cs</Property>
+</SonarQubeAnalysisProperties>

@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="TeleTip/src/TeleTip.Application/TeleTip.Application.csproj" />
+  <Project Path="TeleTip/src/TeleTip.Domain/TeleTip.Domain.csproj" />
+  <Project Path="TeleTip/src/TeleTip.Infrastructure/TeleTip.Infrastructure.csproj" />
+  <Project Path="TeleTip/src/TeleTip.WebAPI/TeleTip.WebAPI.csproj" />
+  <Project Path="TeleTip/tests/TeleTip.Tests/TeleTip.Tests.csproj" />
+</Solution>

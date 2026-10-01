@@ -1,0 +1,97 @@
+version: '3.9'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cleanarch-api
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__SqlServer=Data Source=sqlserver;Initial Catalog=CleanArchDb;User ID=sa;Password=YourStrong@Passw0rd;Encrypt=True;TrustServerCertificate=True
+      - ConnectionStrings__Redis=redis:6379
+      - ConnectionStrings__RabbitMQ=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - sqlserver
+      - redis
+      - rabbitmq
+    networks:
+      - cleanarch-net
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: cleanarch-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=YourStrong@Passw0rd
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - cleanarch-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: cleanarch-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - cleanarch-net
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: cleanarch-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - cleanarch-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cleanarch-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - cleanarch-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cleanarch-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - cleanarch-net
+
+  seq:
+    image: datalust/seq:latest
+    container_name: cleanarch-seq
+    ports:
+      - "5341:5341"
+      - "8080:80"
+    environment:
+      - ACCEPT_EULA=Y
+    networks:
+      - cleanarch-net
+
+volumes:
+  sqlserver_data:
+  grafana_data:
+
+networks:
+  cleanarch-net:
+    driver: bridge
