@@ -13,7 +13,7 @@ namespace MyProject.Infrastructure.Persistence
         {
             var config = new ConfigurationBuilder()
                 .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(),
-                    "..", "MyProject.WebAPI"))
+                    "..", "TeleTip.WebAPI"))
                 .AddJsonFile("appsettings.json", optional: false)
                 .Build();
 

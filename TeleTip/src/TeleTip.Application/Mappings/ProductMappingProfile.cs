@@ -8,7 +8,7 @@ namespace MyProject.Application.Mappings
     {
         public ProductMappingProfile()
         {
-            CreateMap<Product, ProductDto>();
+            CreateMap<Product, ProductDto>().ReverseMap();
         }
     }
 }

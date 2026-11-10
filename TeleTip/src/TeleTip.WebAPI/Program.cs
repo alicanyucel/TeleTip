@@ -25,8 +25,8 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 // ── Controllers + OpenAPI ─────────────────────────────────────────────────
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // ── JWT Auth ──────────────────────────────────────────────────────────────
 builder.Services.AddAuthentication("Bearer")
@@ -99,8 +99,12 @@ using (var scope = app.Services.CreateScope())
 app.UseSerilogRequestLogging();
 app.UseExceptionHandler();
 
-if (app.Environment.IsDevelopment())
-    app.MapOpenApi();
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "TeleTip API v1");
+    options.RoutePrefix = "swagger";
+});
 
 app.UseHttpsRedirection();
 app.UseRateLimiter();
