@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MyProject.Application.Features.TeleCare;
 using MyProject.Domain.Abstractions;
@@ -6,6 +7,7 @@ using MyProject.Domain.Abstractions;
 namespace MyProject.WebAPI.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/telecare")]
 public sealed class TeleCareController(ISender sender) : ControllerBase
 {

@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MyProject.Application.Features.Products.Commands.CreateProduct;
 using MyProject.Application.Features.Products.Queries.GetAllProducts;
@@ -8,6 +9,7 @@ using MyProject.Domain.Abstractions;
 namespace MyProject.WebAPI.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/[controller]")]
     public sealed class ProductsController(ISender sender) : ControllerBase
     {
