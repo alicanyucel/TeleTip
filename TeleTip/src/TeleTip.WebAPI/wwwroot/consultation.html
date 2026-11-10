@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TeleTip Görüntülü Görüşme</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+    .toolbar, .videos, .chat { display: flex; gap: 1rem; margin-bottom: 1rem; }
+    input, select, button { padding: .6rem; }
+    input { flex: 1; }
+    video { width: 48%; min-height: 220px; background: #111; border-radius: 8px; }
+    #messages { min-height: 150px; border: 1px solid #ddd; padding: 1rem; overflow-y: auto; }
+    .status { color: #555; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>TeleTip Görüntülü Görüşme</h1>
+  <p class="status" id="status">Bağlantı kurulmadı.</p>
+
+  <div class="toolbar">
+    <input id="consultationId" placeholder="Consultation GUID" />
+    <select id="role">
+      <option value="Doctor">Doktor</option>
+      <option value="Patient">Hasta</option>
+    </select>
+    <input id="token" type="password" placeholder="JWT token" />
+    <button id="connect">Bağlan</button>
+  </div>
+
+  <div class="videos">
+    <video id="localVideo" autoplay muted playsinline></video>
+    <video id="remoteVideo" autoplay playsinline></video>
+  </div>
+
+  <div class="chat">
+    <input id="message" placeholder="Mesaj yazın" disabled />
+    <button id="send" disabled>Gönder</button>
+  </div>
+  <div id="messages"></div>
+
+  <script>
+    const status = document.getElementById('status');
+    const consultationInput = document.getElementById('consultationId');
+    const roleInput = document.getElementById('role');
+    const tokenInput = document.getElementById('token');
+    const messageInput = document.getElementById('message');
+    const sendButton = document.getElementById('send');
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const messages = document.getElementById('messages');
+    const apiBase = `${location.protocol}//${location.host}`;
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl(`${apiBase}/hubs/consultation`, {
+        accessTokenFactory: () => tokenInput.value
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    let consultationId;
+    let peerConnection;
+    let localStream;
+
+    function setStatus(value) { status.textContent = value; }
+    function addMessage(value) {
+      const line = document.createElement('div');
+      line.textContent = value;
+      messages.appendChild(line);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    async function createPeerConnection() {
+      peerConnection ??= new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      });
+
+      peerConnection.onicecandidate = event => {
+        if (event.candidate) {
+          connection.invoke('SendIceCandidate', consultationId,
+            event.candidate.candidate,
+            event.candidate.sdpMid,
+            event.candidate.sdpMLineIndex);
+        }
+      };
+      peerConnection.ontrack = event => { remoteVideo.srcObject = event.streams[0]; };
+
+      if (!localStream) {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localVideo.srcObject = localStream;
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+      }
+      return peerConnection;
+    }
+
+    async function createOffer() {
+      const pc = await createPeerConnection();
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await connection.invoke('SendOffer', consultationId, offer.sdp);
+    }
+
+    connection.on('ConsultationJoined', async data => {
+      setStatus(`${data.Role} olarak bağlandınız. Katılımcı: ${data.ParticipantCount}`);
+      messageInput.disabled = false;
+      sendButton.disabled = false;
+      await createPeerConnection();
+      if (data.Role === 'Doctor' && data.ParticipantCount > 1) await createOffer();
+    });
+
+    connection.on('ParticipantJoined', async role => {
+      setStatus(`${role} görüşmeye katıldı.`);
+      if (role === 'Patient' && roleInput.value === 'Doctor') await createOffer();
+    });
+
+    connection.on('ParticipantLeft', role => setStatus(`${role} görüşmeden ayrıldı.`));
+
+    connection.on('WebRtcOfferReceived', async data => {
+      const pc = await createPeerConnection();
+      await pc.setRemoteDescription({ type: 'offer', sdp: data.sdp });
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await connection.invoke('SendAnswer', consultationId, answer.sdp);
+    });
+
+    connection.on('WebRtcAnswerReceived', async data => {
+      await peerConnection.setRemoteDescription({ type: 'answer', sdp: data.sdp });
+    });
+
+    connection.on('IceCandidateReceived', async data => {
+      if (peerConnection) {
+        await peerConnection.addIceCandidate({
+          candidate: data.candidate,
+          sdpMid: data.sdpMid,
+          sdpMLineIndex: data.sdpMLineIndex
+        });
+      }
+    });
+
+    connection.on('ChatMessageReceived', data => {
+      addMessage(`${data.senderRole}: ${data.message}`);
+    });
+
+    document.getElementById('connect').onclick = async () => {
+      if (!crypto.randomUUID) {
+        setStatus('Modern bir tarayıcı gereklidir.');
+        return;
+      }
+      consultationId = consultationInput.value || crypto.randomUUID();
+      consultationInput.value = consultationId;
+      try {
+        await connection.start();
+        await connection.invoke('JoinConsultation', {
+          consultationId,
+          role: roleInput.value
+        });
+      } catch (error) {
+        setStatus(`Bağlantı hatası: ${error.message}`);
+      }
+    };
+
+    sendButton.onclick = async () => {
+      const message = messageInput.value.trim();
+      if (!message) return;
+      await connection.invoke('SendChatMessage', consultationId, message);
+      messageInput.value = '';
+    };
+
+    messageInput.onkeydown = event => {
+      if (event.key === 'Enter') sendButton.click();
+    };
+  </script>
+</body>
+</html>

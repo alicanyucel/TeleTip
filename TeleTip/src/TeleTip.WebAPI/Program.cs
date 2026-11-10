@@ -1,17 +1,20 @@
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MyProject.Application;
 using MyProject.Infrastructure;
 using MyProject.Infrastructure.Persistence;
 using MyProject.WebAPI.Middleware;
+using MyProject.WebAPI.Hubs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Serilog;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,6 +30,22 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options =>
+        options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ConsultationClient", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:5270",
+                "https://localhost:7139",
+                "http://localhost:5187")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
 
 // ── JWT Auth ──────────────────────────────────────────────────────────────
 builder.Services.AddAuthentication("Bearer")
@@ -106,12 +125,16 @@ app.UseSwaggerUI(options =>
     options.RoutePrefix = "swagger";
 });
 
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseHttpsRedirection();
+app.UseCors("ConsultationClient");
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers().RequireRateLimiting("fixed");
+app.MapHub<ConsultationHub>("/hubs/consultation");
 
 // ── Health Check endpoint ─────────────────────────────────────────────────
 app.MapHealthChecks("/health", new HealthCheckOptions
