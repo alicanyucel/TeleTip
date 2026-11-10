@@ -20,6 +20,7 @@ TeleTip, yapay zekâ destekli uzaktan sağlık hizmetleri için geliştirilen bi
 - [IoT ve AI](#iot-ve-ai)
 - [Güvenlik](#güvenlik)
 - [Proje Yapısı](#proje-yapısı)
+- [Test ve Codecov Coverage](#test-ve-codecov-coverage)
 
 ## Teknolojiler
 
@@ -382,6 +383,44 @@ Testleri çalıştırmak için:
 
 ```powershell
 dotnet test
+```
+
+## Test ve Codecov Coverage
+
+Projede xUnit, FluentAssertions ve NSubstitute kullanılır. Unit testler domain entity’lerini, CQRS command/query handler’larını, validasyonları ve repository etkileşimlerini kapsar.
+
+Testleri coverage raporuyla çalıştırmak için:
+
+```powershell
+dotnet test .\tests\TeleTip.Tests\TeleTip.Tests.csproj `
+  --collect:"XPlat Code Coverage" `
+  --results-directory .\TestResults
+```
+
+Komut sonucunda Cobertura formatında `coverage.cobertura.xml` dosyası oluşturulur. GitHub Actions bu dosyayı Codecov’a otomatik yükler.
+
+Coverage ayarları `codecov.yml` dosyasında bulunur:
+
+- Project coverage hedefi: `%70`
+- Patch coverage hedefi: `%70`
+- Migration, test, generated, blockchain ve `wwwroot` dosyaları kapsam dışıdır.
+
+GitHub Actions workflow dosyası:
+
+```text
+.github/workflows/ci-cd.yml
+```
+
+Codecov upload işlemi için GitHub repository secrets bölümüne aşağıdaki secret eklenmelidir:
+
+```text
+CODECOV_TOKEN
+```
+
+Coverage raporu:
+
+```text
+https://codecov.io/gh/alicanyucel/TeleTip
 ```
 
 ## Durum
