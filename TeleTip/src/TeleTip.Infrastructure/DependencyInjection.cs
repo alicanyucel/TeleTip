@@ -2,12 +2,14 @@ using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MyProject.Application.Abstractions.Blockchain;
 using MyProject.Application.Abstractions.Cache;
 using MyProject.Application.Abstractions.Messaging;
 using MyProject.Application.Abstractions.MultiTenancy;
 using MyProject.Domain.Abstractions;
 using MyProject.Domain.Repositories;
 using MyProject.Infrastructure.Cache;
+using MyProject.Infrastructure.Blockchain;
 using MyProject.Infrastructure.Messaging;
 using MyProject.Infrastructure.Messaging.Consumers;
 using MyProject.Infrastructure.Messaging.Sagas;
@@ -27,6 +29,10 @@ namespace MyProject.Infrastructure
                 options.UseSqlServer(configuration.GetConnectionString("SqlServer")));
 
             services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
+
+            // EVM blockchain notarization
+            services.Configure<BlockchainOptions>(configuration.GetSection(BlockchainOptions.SectionName));
+            services.AddScoped<IHealthRecordNotarizer, NethereumHealthRecordNotarizer>();
 
             // Repositories
             services.AddScoped<IProductRepository, ProductRepository>();
