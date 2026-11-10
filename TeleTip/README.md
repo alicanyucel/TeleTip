@@ -1,5 +1,8 @@
 # TeleTip
 
+[![CI/CD](https://github.com/alicanyucel/TeleTip/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/alicanyucel/TeleTip/actions/workflows/ci-cd.yml)
+[![codecov](https://codecov.io/gh/alicanyucel/TeleTip/branch/master/graph/badge.svg)](https://codecov.io/gh/alicanyucel/TeleTip)
+
 TeleTip, yapay zekâ destekli uzaktan sağlık hizmetleri için geliştirilen bir .NET Web API projesidir. Sistem; hasta ve doktor yönetimi, görüntülü görüşme, gerçek zamanlı chat, IoT sağlık verileri, AI analiz modeli ve blockchain üzerinde sağlık kaydı doğrulama altyapısı içerir.
 
 ## İçindekiler

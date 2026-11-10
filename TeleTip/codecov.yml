@@ -1,0 +1,17 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 70%
+        threshold: 5%
+    patch:
+      default:
+        target: 70%
+        threshold: 5%
+
+ignore:
+  - "tests/**"
+  - "**/Migrations/**"
+  - "**/Program.cs"
+  - "**/wwwroot/**"
+  - "blockchain/**"

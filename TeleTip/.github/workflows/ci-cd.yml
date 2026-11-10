@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  DOTNET_VERSION: '9.0.x'
+  DOTNET_VERSION: '10.0.x'
   SONAR_PROJECT_KEY: 'MyProject'
 
 jobs:
@@ -51,6 +51,18 @@ jobs:
           dotnet-coverage collect \
             "dotnet test --no-build -c Release" \
             -f xml -o coverage.xml
+
+      - name: Collect Cobertura Coverage
+        run: dotnet test --no-build -c Release --collect:"XPlat Code Coverage" --results-directory ./TestResults
+
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./TestResults/**/coverage.cobertura.xml
+          flags: unittests
+          name: teletip
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: SonarQube End
         run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
