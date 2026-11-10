@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using MyProject.Infrastructure.Persistence;
 using MyProject.WebAPI.Contracts;
 
 namespace MyProject.WebAPI.Hubs;
@@ -9,6 +10,12 @@ namespace MyProject.WebAPI.Hubs;
 public sealed class ConsultationHub : Hub
 {
     private static readonly ConcurrentDictionary<Guid, ConcurrentDictionary<string, Participant>> Rooms = new();
+    private readonly AppDbContext _db;
+
+    public ConsultationHub(AppDbContext db)
+    {
+        _db = db;
+    }
 
     public async Task JoinConsultation(JoinConsultationRequest request)
     {
@@ -55,6 +62,20 @@ public sealed class ConsultationHub : Hub
             participant.Role,
             message.Trim(),
             DateTime.UtcNow);
+
+        var storedMessage = MyProject.Domain.Entities.ChatMessage.Create(
+            consultationId,
+            chatMessage.SenderId,
+            participant.Role == ConsultationParticipantRole.Doctor
+                ? MyProject.Domain.Entities.ConsultationParticipantRole.Doctor
+                : MyProject.Domain.Entities.ConsultationParticipantRole.Patient,
+            chatMessage.Message);
+
+        if (storedMessage.IsFailure)
+            throw new HubException(storedMessage.Error.Description);
+
+        _db.ChatMessages.Add(storedMessage.Value);
+        await _db.SaveChangesAsync(Context.ConnectionAborted);
 
         await Clients.Group(GroupName(consultationId)).SendAsync("ChatMessageReceived", chatMessage);
     }

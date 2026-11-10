@@ -6,6 +6,7 @@ using MyProject.Application.Abstractions.Blockchain;
 using MyProject.Application.Abstractions.Cache;
 using MyProject.Application.Abstractions.Messaging;
 using MyProject.Application.Abstractions.MultiTenancy;
+using MyProject.Application.Abstractions.Persistence;
 using MyProject.Domain.Abstractions;
 using MyProject.Domain.Repositories;
 using MyProject.Infrastructure.Cache;
@@ -29,6 +30,7 @@ namespace MyProject.Infrastructure
                 options.UseSqlServer(configuration.GetConnectionString("SqlServer")));
 
             services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
+            services.AddScoped<ITeleCareRepository, TeleCareRepository>();
 
             // EVM blockchain notarization
             services.Configure<BlockchainOptions>(configuration.GetSection(BlockchainOptions.SectionName));

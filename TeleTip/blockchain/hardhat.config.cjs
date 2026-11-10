@@ -1,3 +1,4 @@
+// @ts-nocheck
 require("@nomicfoundation/hardhat-toolbox");
 
 module.exports = {

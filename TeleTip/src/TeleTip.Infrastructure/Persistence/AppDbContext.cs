@@ -21,6 +21,7 @@ namespace MyProject.Infrastructure.Persistence
         public DbSet<MedicalReport> MedicalReports => Set<MedicalReport>();
         public DbSet<AiAnalysis> AiAnalyses => Set<AiAnalysis>();
         public DbSet<Notification> Notifications => Set<Notification>();
+        public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -40,6 +41,7 @@ namespace MyProject.Infrastructure.Persistence
                 modelBuilder.Entity<MedicalReport>().HasQueryFilter(p => p.TenantId == tenantId);
                 modelBuilder.Entity<AiAnalysis>().HasQueryFilter(p => p.TenantId == tenantId);
                 modelBuilder.Entity<Notification>().HasQueryFilter(p => p.TenantId == tenantId);
+                modelBuilder.Entity<ChatMessage>().HasQueryFilter(p => p.TenantId == tenantId);
             }
 
             ConfigureTeleCareEntities(modelBuilder);
@@ -123,6 +125,15 @@ namespace MyProject.Infrastructure.Persistence
                 entity.Property(p => p.Type).HasConversion<string>().HasMaxLength(40);
                 entity.Property(p => p.Title).HasMaxLength(200).IsRequired();
                 entity.Property(p => p.Message).HasMaxLength(2000).IsRequired();
+            });
+
+            modelBuilder.Entity<ChatMessage>(entity =>
+            {
+                entity.ToTable("ChatMessages");
+                entity.Property(p => p.SenderId).HasMaxLength(200).IsRequired();
+                entity.Property(p => p.SenderRole).HasConversion<string>().HasMaxLength(30);
+                entity.Property(p => p.Message).HasMaxLength(4000).IsRequired();
+                entity.HasIndex(p => new { p.ConsultationId, p.SentAt });
             });
         }
 
