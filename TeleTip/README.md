@@ -5,6 +5,8 @@
 
 TeleTip, yapay zekâ destekli uzaktan sağlık hizmetleri için geliştirilen bir .NET Web API projesidir. Sistem; hasta ve doktor yönetimi, görüntülü görüşme, gerçek zamanlı chat, IoT sağlık verileri, AI analiz modeli ve blockchain üzerinde sağlık kaydı doğrulama altyapısı içerir.
 
+Projenin amacı; hastaların sağlık verilerini güvenli şekilde toplamak, doktorların bu verilere erişmesini kolaylaştırmak ve uzaktan sağlık hizmetlerini tek bir platformda sunmaktır.
+
 ## İçindekiler
 
 - [Teknolojiler](#teknolojiler)
@@ -43,6 +45,9 @@ TeleTip, yapay zekâ destekli uzaktan sağlık hizmetleri için geliştirilen bi
 - OpenTelemetry
 - Health Checks
 - Docker Compose
+- MQTT / Mosquitto
+- Wear OS ve Kotlin
+- Samsung Health entegrasyon sınırı
 
 ## Mimari
 
@@ -59,6 +64,7 @@ TeleTip, yapay zekâ destekli uzaktan sağlık hizmetleri için geliştirilen bi
 - Visual Studio 2026 veya .NET 10 SDK
 - SQL Server Express veya SQL Server
 - İsteğe bağlı: Docker Desktop
+- Wear OS uygulaması için Android Studio, Android SDK ve JDK 17
 - Blockchain için Node.js ve npm
 - Kamera ve mikrofon erişimi için HTTPS veya localhost
 
@@ -148,10 +154,10 @@ HTTP:  http://localhost:5270
 Swagger: https://localhost:7139/swagger
 ```
 
-Redis ve RabbitMQ kullanılıyorsa Docker servislerini başlatabilirsiniz:
+Redis, RabbitMQ ve MQTT broker kullanılıyorsa Docker servislerini başlatabilirsiniz:
 
 ```powershell
-docker compose up -d redis rabbitmq
+docker compose up -d redis rabbitmq mosquitto
 ```
 
 ## Swagger Kullanımı
@@ -315,13 +321,9 @@ Private key’i kesinlikle Git repository’sine göndermeyin.
 
 ## IoT ve AI
 
-IoT modeli aşağıdaki cihazları destekler:
+TeleTip, sağlık ölçümlerini `HealthMeasurement` modeli üzerinden saklar. Ölçüm kaynağı; akıllı saat, tansiyon cihazı, glikometre veya başka bir tıbbi cihaz olabilir.
 
-- Akıllı saat
-- Tansiyon ölçer
-- Glikometre
-
-IoT entity ve sağlık ölçümü modeli hazırdır. Gerçek Bluetooth, MQTT, Apple Health veya Google Fit entegrasyonu ayrıca yapılmalıdır.
+Galaxy Watch 8 entegrasyonu için Wear OS Kotlin uygulaması ve MQTT tabanlı backend tüketicisi eklenmiştir. MQTT mesajları doğrulandıktan sonra tenant ve hasta bilgileriyle birlikte SQL Server’daki `HealthMeasurements` tablosuna kaydedilir.
 
 AI modeli aşağıdaki işlemleri destekleyecek şekilde hazırlandı:
 
@@ -331,6 +333,85 @@ AI modeli aşağıdaki işlemleri destekleyecek şekilde hazırlandı:
 - Risk skoru
 
 Gerçek AI analizi için Azure OpenAI, OpenAI veya başka bir model sağlayıcısının ayrıca bağlanması gerekir.
+
+## Samsung Galaxy Watch 8 ve MQTT
+
+Wear OS başlangıç uygulaması şu konumdadır:
+
+```text
+mobile/TeleTipWatch
+```
+
+Backend, Mosquitto MQTT broker üzerinden aşağıdaki topic filtresini dinler:
+
+```text
+teletip/tenants/+/patients/+/measurements
+```
+
+Saat veya ara cihazın yayınlaması gereken topic formatı:
+
+```text
+teletip/tenants/{tenantId}/patients/{patientId}/measurements
+```
+
+Örnek MQTT payload:
+
+```json
+{
+  "deviceId": "00000000-0000-0000-0000-000000000001",
+  "type": "HeartRate",
+  "value": 72,
+  "unit": "bpm",
+  "measuredAt": "2026-01-01T12:00:00Z",
+  "source": "Samsung Galaxy Watch 8"
+}
+```
+
+MQTT yapılandırması:
+
+```json
+{
+  "Mqtt": {
+	"Host": "127.0.0.1",
+	"Port": 1883,
+	"ClientId": "teletip-api",
+	"Username": "",
+	"Password": "",
+	"TopicFilter": "teletip/tenants/+/patients/+/measurements"
+  }
+}
+```
+
+Local broker’ı başlatmak ve API’yi çalıştırmak için:
+
+```powershell
+docker compose up -d mosquitto
+dotnet run --project .\src\TeleTip.WebAPI\TeleTip.WebAPI.csproj
+```
+
+MQTT tüketicisi aşağıdaki dosyada bulunur:
+
+```text
+src/TeleTip.Infrastructure/Messaging/Mqtt/GalaxyWatchMqttConsumer.cs
+```
+
+### Sağlık verisi ve cihaz kısıtları
+
+- Kalp atışı, aktivite ve benzeri veriler cihaz ile Samsung Health izinlerine bağlıdır.
+- Tansiyon ölçümü Samsung Health Monitor desteği ve düzenli manşet kalibrasyonu gerektirir.
+- Kan şekeri/glikoz değeri Galaxy Watch’ın doğrudan ve klinik olarak onaylı bir sensöründen alınmaz. Bu veri için desteklenen CGM veya harici tıbbi cihaz entegrasyonu gerekir.
+- Samsung Health SDK erişimi ülkeye, cihaza, kullanıcı hesabına ve Samsung’un geliştirici izinlerine bağlı olabilir.
+- `SamsungHealthSdkDataSource` sınıfı, onaylı Samsung Health SDK adapter’ının bağlanacağı entegrasyon sınırıdır.
+
+Wear OS uygulamasında kullanılan temel izinler:
+
+```text
+android.permission.INTERNET
+android.permission.BODY_SENSORS
+android.permission.ACTIVITY_RECOGNITION
+```
+
+> Geliştirme ortamındaki Mosquitto yapılandırması anonymous bağlantıya izin verir. Production ortamında TLS, kullanıcı doğrulama, cihaz bazlı kimlik bilgileri ve topic yetkilendirmesi zorunlu tutulmalıdır.
 
 ## Güvenlik
 
@@ -440,11 +521,15 @@ Hazır olan özellikler:
 - AI analiz entity modeli
 - Redis ve RabbitMQ altyapısı
 - Health checks
+- MQTT tabanlı Galaxy Watch 8 telemetrisi
+- Wear OS Kotlin başlangıç uygulaması
 
 Geliştirilmesi gereken özellikler:
 
 - Gerçek AI sağlayıcısı entegrasyonu
-- Gerçek IoT cihaz bağlantıları
+- Samsung Health SDK’nın onaylı cihaz adapter’ı
+- Wear OS için hasta/tenant yapılandırma ekranı
+- Production MQTT için TLS ve cihaz kimlik doğrulaması
 - TURN server
 - Doctor/Patient role-based authorization
 - Chat geçmişi için filtreleme ve sayfalama
