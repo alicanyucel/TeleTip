@@ -18,6 +18,7 @@ TeleTip, yapay zekâ destekli uzaktan sağlık hizmetleri için geliştirilen bi
 - [Görüntülü Görüşme ve Chat](#görüntülü-görüşme-ve-chat)
 - [Blockchain](#blockchain)
 - [IoT ve AI](#iot-ve-ai)
+- [Samsung Galaxy Watch 8](#samsung-galaxy-watch-8)
 - [Güvenlik](#güvenlik)
 - [Proje Yapısı](#proje-yapısı)
 - [Test ve Codecov Coverage](#test-ve-codecov-coverage)

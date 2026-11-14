@@ -13,6 +13,7 @@ using MyProject.Infrastructure.Cache;
 using MyProject.Infrastructure.Blockchain;
 using MyProject.Infrastructure.Messaging;
 using MyProject.Infrastructure.Messaging.Consumers;
+using MyProject.Infrastructure.Messaging.Mqtt;
 using MyProject.Infrastructure.Messaging.Sagas;
 using MyProject.Infrastructure.MultiTenancy;
 using MyProject.Infrastructure.Persistence;
@@ -69,6 +70,10 @@ namespace MyProject.Infrastructure
             });
 
             services.AddScoped<IEventBus, EventBus>();
+
+            // Samsung Galaxy Watch 8 telemetry over MQTT
+            services.Configure<MqttOptions>(configuration.GetSection(MqttOptions.SectionName));
+            services.AddHostedService<GalaxyWatchMqttConsumer>();
 
             return services;
         }

@@ -13,10 +13,26 @@ services:
       - ConnectionStrings__SqlServer=Data Source=sqlserver;Initial Catalog=CleanArchDb;User ID=sa;Password=YourStrong@Passw0rd;Encrypt=True;TrustServerCertificate=True
       - ConnectionStrings__Redis=redis:6379
       - ConnectionStrings__RabbitMQ=amqp://guest:guest@rabbitmq:5672
+      - Mqtt__Host=mosquitto
+      - Mqtt__Port=1883
     depends_on:
       - sqlserver
       - redis
       - rabbitmq
+      - mosquitto
+    networks:
+      - cleanarch-net
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: teletip-mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
     networks:
       - cleanarch-net
 
@@ -91,6 +107,8 @@ services:
 volumes:
   sqlserver_data:
   grafana_data:
+  mosquitto_data:
+  mosquitto_log:
 
 networks:
   cleanarch-net:
