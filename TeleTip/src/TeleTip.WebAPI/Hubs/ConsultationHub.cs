@@ -1,147 +1,148 @@
-using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using MyProject.Infrastructure.Persistence;
 using MyProject.WebAPI.Contracts;
+using System.Collections.Concurrent;
 
-namespace MyProject.WebAPI.Hubs;
-
-[Authorize]
-public sealed class ConsultationHub : Hub
+namespace MyProject.WebAPI.Hubs
 {
-    private static readonly ConcurrentDictionary<Guid, ConcurrentDictionary<string, Participant>> Rooms = new();
-    private readonly AppDbContext _db;
-
-    public ConsultationHub(AppDbContext db)
+    [Authorize]
+    public sealed class ConsultationHub : Hub
     {
-        _db = db;
-    }
+        private static readonly ConcurrentDictionary<Guid, ConcurrentDictionary<string, Participant>> Rooms = new();
+        private readonly AppDbContext _db;
 
-    public async Task JoinConsultation(JoinConsultationRequest request)
-    {
-        if (request.ConsultationId == Guid.Empty)
-            throw new HubException("Consultation id is required.");
-
-        var room = Rooms.GetOrAdd(request.ConsultationId, _ => new ConcurrentDictionary<string, Participant>());
-        var connectionId = Context.ConnectionId;
-        var participant = new Participant(connectionId, request.Role);
-
-        if (!room.TryAdd(connectionId, participant))
-            throw new HubException("Connection is already in this consultation.");
-
-        if (room.Values.Count(p => p.Role == request.Role) > 1)
+        public ConsultationHub(AppDbContext db)
         {
-            room.TryRemove(connectionId, out _);
-            throw new HubException($"A {request.Role} is already connected to this consultation.");
+            _db = db;
         }
 
-        await Groups.AddToGroupAsync(connectionId, GroupName(request.ConsultationId));
-        await Clients.Caller.SendAsync("ConsultationJoined", new
+        public async Task JoinConsultation(JoinConsultationRequest request)
         {
-            request.ConsultationId,
-            Role = request.Role.ToString(),
-            ConnectionId = connectionId,
-            ParticipantCount = room.Count
-        });
+            if (request.ConsultationId == Guid.Empty)
+                throw new HubException("Consultation id is required.");
 
-        await Clients.OthersInGroup(request.ConsultationId.ToString("N"))
-            .SendAsync("ParticipantJoined", request.Role.ToString(), connectionId);
-    }
+            var room = Rooms.GetOrAdd(request.ConsultationId, _ => new ConcurrentDictionary<string, Participant>());
+            var connectionId = Context.ConnectionId;
+            var participant = new Participant(connectionId, request.Role);
 
-    public async Task SendChatMessage(Guid consultationId, string message)
-    {
-        EnsureJoined(consultationId);
+            if (!room.TryAdd(connectionId, participant))
+                throw new HubException("Connection is already in this consultation.");
 
-        if (string.IsNullOrWhiteSpace(message))
-            throw new HubException("Message cannot be empty.");
+            if (room.Values.Count(p => p.Role == request.Role) > 1)
+            {
+                room.TryRemove(connectionId, out _);
+                throw new HubException($"A {request.Role} is already connected to this consultation.");
+            }
 
-        var participant = Rooms[consultationId][Context.ConnectionId];
-        var chatMessage = new ChatMessage(
-            consultationId,
-            Context.UserIdentifier ?? Context.ConnectionId,
-            participant.Role,
-            message.Trim(),
-            DateTime.UtcNow);
+            await Groups.AddToGroupAsync(connectionId, GroupName(request.ConsultationId));
+            await Clients.Caller.SendAsync("ConsultationJoined", new
+            {
+                request.ConsultationId,
+                Role = request.Role.ToString(),
+                ConnectionId = connectionId,
+                ParticipantCount = room.Count
+            });
 
-        var storedMessage = MyProject.Domain.Entities.ChatMessage.Create(
-            consultationId,
-            chatMessage.SenderId,
-            participant.Role == ConsultationParticipantRole.Doctor
-                ? MyProject.Domain.Entities.ConsultationParticipantRole.Doctor
-                : MyProject.Domain.Entities.ConsultationParticipantRole.Patient,
-            chatMessage.Message);
+            await Clients.OthersInGroup(request.ConsultationId.ToString("N"))
+                .SendAsync("ParticipantJoined", request.Role.ToString(), connectionId);
+        }
 
-        if (storedMessage.IsFailure)
-            throw new HubException(storedMessage.Error.Description);
+        public async Task SendChatMessage(Guid consultationId, string message)
+        {
+            EnsureJoined(consultationId);
 
-        _db.ChatMessages.Add(storedMessage.Value);
-        await _db.SaveChangesAsync(Context.ConnectionAborted);
+            if (string.IsNullOrWhiteSpace(message))
+                throw new HubException("Message cannot be empty.");
 
-        await Clients.Group(GroupName(consultationId)).SendAsync("ChatMessageReceived", chatMessage);
-    }
-
-    public async Task SendOffer(Guid consultationId, string sdp)
-    {
-        EnsureJoined(consultationId);
-        await Clients.OthersInGroup(GroupName(consultationId)).SendAsync(
-            "WebRtcOfferReceived",
-            new WebRtcOffer(consultationId, Context.ConnectionId, sdp));
-    }
-
-    public async Task SendAnswer(Guid consultationId, string sdp)
-    {
-        EnsureJoined(consultationId);
-        await Clients.OthersInGroup(GroupName(consultationId)).SendAsync(
-            "WebRtcAnswerReceived",
-            new WebRtcAnswer(consultationId, Context.ConnectionId, sdp));
-    }
-
-    public async Task SendIceCandidate(
-        Guid consultationId,
-        string candidate,
-        string? sdpMid,
-        int? sdpMLineIndex)
-    {
-        EnsureJoined(consultationId);
-        await Clients.OthersInGroup(GroupName(consultationId)).SendAsync(
-            "IceCandidateReceived",
-            new IceCandidate(
+            var participant = Rooms[consultationId][Context.ConnectionId];
+            var chatMessage = new ChatMessage(
                 consultationId,
-                Context.ConnectionId,
-                candidate,
-                sdpMid,
-                sdpMLineIndex));
-    }
+                Context.UserIdentifier ?? Context.ConnectionId,
+                participant.Role,
+                message.Trim(),
+                DateTime.UtcNow);
 
-    public override async Task OnDisconnectedAsync(Exception? exception)
-    {
-        foreach (var roomEntry in Rooms)
-        {
-            if (!roomEntry.Value.TryRemove(Context.ConnectionId, out var participant))
-                continue;
+            var storedMessage = MyProject.Domain.Entities.ChatMessage.Create(
+                consultationId,
+                chatMessage.SenderId,
+                participant.Role == ConsultationParticipantRole.Doctor
+                    ? MyProject.Domain.Entities.ConsultationParticipantRole.Doctor
+                    : MyProject.Domain.Entities.ConsultationParticipantRole.Patient,
+                chatMessage.Message);
 
-            await Clients.Group(GroupName(roomEntry.Key)).SendAsync(
-                "ParticipantLeft",
-                participant.Role.ToString(),
-                Context.ConnectionId);
+            if (storedMessage.IsFailure)
+                throw new HubException(storedMessage.Error.Description);
 
-            if (roomEntry.Value.IsEmpty)
-                Rooms.TryRemove(roomEntry.Key, out _);
+            _db.ChatMessages.Add(storedMessage.Value);
+            await _db.SaveChangesAsync(Context.ConnectionAborted);
+
+            await Clients.Group(GroupName(consultationId)).SendAsync("ChatMessageReceived", chatMessage);
         }
 
-        await base.OnDisconnectedAsync(exception);
-    }
-
-    private void EnsureJoined(Guid consultationId)
-    {
-        if (!Rooms.TryGetValue(consultationId, out var room) ||
-            !room.ContainsKey(Context.ConnectionId))
+        public async Task SendOffer(Guid consultationId, string sdp)
         {
-            throw new HubException("Join the consultation before sending messages.");
+            EnsureJoined(consultationId);
+            await Clients.OthersInGroup(GroupName(consultationId)).SendAsync(
+                "WebRtcOfferReceived",
+                new WebRtcOffer(consultationId, Context.ConnectionId, sdp));
         }
+
+        public async Task SendAnswer(Guid consultationId, string sdp)
+        {
+            EnsureJoined(consultationId);
+            await Clients.OthersInGroup(GroupName(consultationId)).SendAsync(
+                "WebRtcAnswerReceived",
+                new WebRtcAnswer(consultationId, Context.ConnectionId, sdp));
+        }
+
+        public async Task SendIceCandidate(
+            Guid consultationId,
+            string candidate,
+            string? sdpMid,
+            int? sdpMLineIndex)
+        {
+            EnsureJoined(consultationId);
+            await Clients.OthersInGroup(GroupName(consultationId)).SendAsync(
+                "IceCandidateReceived",
+                new IceCandidate(
+                    consultationId,
+                    Context.ConnectionId,
+                    candidate,
+                    sdpMid,
+                    sdpMLineIndex));
+        }
+
+        public override async Task OnDisconnectedAsync(Exception? exception)
+        {
+            foreach (var roomEntry in Rooms)
+            {
+                if (!roomEntry.Value.TryRemove(Context.ConnectionId, out var participant))
+                    continue;
+
+                await Clients.Group(GroupName(roomEntry.Key)).SendAsync(
+                    "ParticipantLeft",
+                    participant.Role.ToString(),
+                    Context.ConnectionId);
+
+                if (roomEntry.Value.IsEmpty)
+                    Rooms.TryRemove(roomEntry.Key, out _);
+            }
+
+            await base.OnDisconnectedAsync(exception);
+        }
+
+        private void EnsureJoined(Guid consultationId)
+        {
+            if (!Rooms.TryGetValue(consultationId, out var room) ||
+                !room.ContainsKey(Context.ConnectionId))
+            {
+                throw new HubException("Join the consultation before sending messages.");
+            }
+        }
+
+        private static string GroupName(Guid consultationId) => consultationId.ToString("N");
+
+        private sealed record Participant(string ConnectionId, ConsultationParticipantRole Role);
     }
-
-    private static string GroupName(Guid consultationId) => consultationId.ToString("N");
-
-    private sealed record Participant(string ConnectionId, ConsultationParticipantRole Role);
 }
