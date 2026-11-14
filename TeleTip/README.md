@@ -505,6 +505,179 @@ Coverage raporu:
 https://codecov.io/gh/alicanyucel/TeleTip
 ```
 
+## Teknopark / Teknokent Proje Tanıtımı
+
+### Projenin Amacı
+
+TeleTip; hastaların, doktorların ve sağlık kuruluşlarının uzaktan sağlık hizmetlerini güvenli ve düzenli şekilde yürütebilmesi amacıyla geliştirilen dijital sağlık platformudur. Proje; hasta ve doktor yönetimi, görüntülü görüşme, gerçek zamanlı mesajlaşma, IoT sağlık verileri, yapay zekâ destekli analiz ve blockchain tabanlı kayıt doğrulama altyapılarını tek bir sistemde birleştirir.
+
+TeleTip’in amacı yalnızca görüntülü görüşme sağlamak değildir. Hastaya ait sağlık ölçümlerinin farklı cihazlardan alınması, merkezi olarak saklanması, doktor tarafından incelenmesi ve gelecekte yapay zekâ ile analiz edilmesi hedeflenmektedir. Böylece özellikle kronik hastaların, yaşlıların ve düzenli takip gerektiren kişilerin sağlık süreçleri uzaktan izlenebilir hale getirilebilir.
+
+### Çözülmek İstenen Problem
+
+Geleneksel sağlık süreçlerinde evde yapılan ölçümler çoğu zaman manuel olarak kaydedilir veya doktora geç ulaştırılır. Hasta bilgileri, görüşme kayıtları, ölçümler, reçeteler ve raporlar farklı ortamlarda tutulabildiği için hastanın güncel durumunu bütünsel olarak değerlendirmek zorlaşır.
+
+TeleTip aşağıdaki sorunları azaltmayı hedefler:
+
+- Evde yapılan sağlık ölçümlerinin düzenli takip edilememesi.
+- Doktorun hastanın güncel verilerine zamanında ulaşamaması.
+- Hasta ve doktor iletişiminin farklı kanallara dağılması.
+- Sağlık verilerinin farklı sistemlerde tutulması.
+- Anormal ölçümlerin ve riskli değişimlerin geç fark edilmesi.
+- Sağlık kuruluşlarının uzaktan takip süreçlerini merkezi olarak yönetememesi.
+- Kırsal bölgelerde veya ulaşımın zor olduğu durumlarda sağlık hizmetine erişim güçlüğü.
+
+### Hedef Kullanıcılar
+
+**Hastalar:** Kişisel sağlık bilgilerini, ölçümlerini, reçetelerini ve raporlarını takip edebilir; doktorlarıyla görüntülü görüşme ve mesajlaşma yapabilir.
+
+**Doktorlar:** Hastaların güncel sağlık ölçümlerini inceleyebilir, uzaktan görüşme yapabilir, mesajlaşabilir ve hastanın takip sürecini yönetebilir.
+
+**Sağlık kuruluşları:** Hasta ve doktor süreçlerini kurum bazında yönetebilir, IoT cihazlarından gelen verileri merkezi olarak izleyebilir ve dijital sağlık hizmetleri sunabilir.
+
+**Ar-Ge ekipleri:** Yetkilendirilmiş ve anonimleştirilmiş verilerle yapay zekâ, giyilebilir cihaz ve uzaktan hasta izleme senaryoları geliştirebilir.
+
+### Temel Modüller
+
+1. **Hasta ve doktor yönetimi:** Hasta, doktor ve sağlık kuruluşu kayıtlarının yönetilmesi.
+2. **Telekonsültasyon:** Hasta ve doktorun uzaktan görüntülü görüşme yapması.
+3. **Gerçek zamanlı chat:** SignalR ile anlık mesajlaşma ve görüşme iletişimi.
+4. **WebRTC görüşme altyapısı:** Ses ve görüntünün peer-to-peer iletilmesi; SignalR’ın signaling işlemlerini yürütmesi.
+5. **Sağlık ölçümleri:** Kalp atışı, tansiyon, glikoz, oksijen, sıcaklık ve benzeri verilerin standart modelde saklanması.
+6. **IoT cihaz yönetimi:** Akıllı saat, tansiyon cihazı, glikometre ve benzeri cihazların sisteme bağlanabilmesi.
+7. **Yapay zekâ analiz altyapısı:** Risk tespiti, trend analizi, uyarı ve risk skoru üretimine uygun yapı.
+8. **Reçete, rapor ve bildirim yönetimi:** Sağlık sürecine ait ek kayıtların yönetilmesi.
+9. **Blockchain doğrulama:** Sağlık verisinin kendisini paylaşmadan kayıt bütünlüğünün hash ile doğrulanması.
+
+### Samsung Galaxy Watch 8 IoT Entegrasyonu
+
+TeleTip’in Galaxy Watch 8 entegrasyonu, Wear OS üzerinde çalışan Kotlin uygulaması ile MQTT tabanlı backend tüketicisinden oluşur. Hedeflenen veri akışı şöyledir:
+
+```text
+Galaxy Watch 8 sensörleri
+		↓
+Samsung Health / Health Services SDK
+		↓
+Wear OS Kotlin uygulaması
+		↓
+MQTT broker / Mosquitto
+		↓
+TeleTip MQTT consumer
+		↓
+HealthMeasurements tablosu
+		↓
+Doktor ve sağlık uygulamaları
+```
+
+MQTT topic formatı:
+
+```text
+teletip/tenants/{tenantId}/patients/{patientId}/measurements
+```
+
+Örnek veri:
+
+```json
+{
+  "deviceId": "00000000-0000-0000-0000-000000000001",
+  "type": "HeartRate",
+  "value": 72,
+  "unit": "bpm",
+  "measuredAt": "2026-01-01T12:00:00Z",
+  "source": "Samsung Galaxy Watch 8"
+}
+```
+
+Backend tarafındaki `GalaxyWatchMqttConsumer`, MQTT mesajının topic bilgisini doğrular, tenant ve hasta kimliğini ayırır, payload formatını kontrol eder ve geçerli ölçümü SQL Server’daki `HealthMeasurements` tablosuna kaydeder.
+
+Wear OS başlangıç uygulaması:
+
+```text
+mobile/TeleTipWatch
+```
+
+MQTT backend kodu:
+
+```text
+src/TeleTip.Infrastructure/Messaging/Mqtt/GalaxyWatchMqttConsumer.cs
+```
+
+Local MQTT broker’ı başlatmak için:
+
+```powershell
+docker compose up -d mosquitto
+```
+
+### Sensör Verileri ve Teknik Kısıtlar
+
+Projedeki MQTT backend’i ve veri kayıt altyapısı hazırdır. Gerçek sensör verilerinin alınması için Wear OS tarafında Samsung Health veya Health Services SDK ile gerçek adapter kodunun tamamlanması, gerekli izinlerin verilmesi ve cihaz üzerinde test yapılması gerekir.
+
+- Kalp atışı, adım, aktivite ve benzeri veriler cihaz ve Samsung Health izinlerine bağlıdır.
+- Tansiyon için Samsung Health Monitor desteği ve düzenli manşet kalibrasyonu gerekir.
+- Galaxy Watch’ın her model ve bölgede sürekli veya klinik tansiyon ölçümü yaptığı varsayılmamalıdır.
+- Glikoz/kan şekeri verisi doğrudan saat sensöründen alınamaz; CGM veya desteklenen harici tıbbi cihaz gerekir.
+- Samsung Health SDK erişimi ülkeye, cihaza, kullanıcı hesabına ve geliştirici izinlerine bağlı olabilir.
+- `SamsungHealthSdkDataSource` gerçek SDK adapter’ının bağlanacağı entegrasyon sınırıdır.
+
+### Teknik Mimari
+
+**TeleTip.Domain:** Entity’ler, domain kuralları, result/error modelleri ve repository abstraction’ları.
+
+**TeleTip.Application:** CQRS command/query yapıları, MediatR handler’ları, DTO’lar ve validasyonlar.
+
+**TeleTip.Infrastructure:** EF Core, SQL Server, MQTTnet, Mosquitto bağlantısı, Redis, RabbitMQ, MassTransit ve blockchain entegrasyonları.
+
+**TeleTip.WebAPI:** ASP.NET Core controller’ları, JWT, Swagger, SignalR hub’ları, WebRTC signaling ve health check endpoint’leri.
+
+**TeleTip.Tests:** Domain, validasyon, handler ve repository testleri.
+
+### Güvenlik ve Gizlilik
+
+TeleTip sağlık verileri işlediği için güvenlik ve gizlilik proje tasarımının temel unsurlarıdır. JWT authentication, authorization, tenant bazlı veri ayrımı, HTTPS, MQTT payload doğrulaması ve hassas verilerin blockchain’e gönderilmemesi temel güvenlik yaklaşımını oluşturur.
+
+Production ortamında MQTT için TLS, kullanıcı doğrulama, cihaz bazlı kimlik bilgileri, topic yetkilendirmesi ve sertifika yönetimi kullanılmalıdır. Geliştirme ortamındaki anonymous Mosquitto yapılandırması production için uygun değildir. Secret, JWT anahtarı ve blockchain private key değerleri source control’e yazılmamalı; User Secrets, environment variable veya güvenli secret manager kullanılmalıdır.
+
+### Yenilikçi Yönler ve Katkı
+
+- Telekonsültasyon, chat, IoT ve sağlık ölçümlerinin tek platformda birleştirilmesi.
+- Giyilebilir cihaz verilerinin doktor takip süreçlerine aktarılabilmesi.
+- Sürekli telemetri için MQTT tabanlı ve düşük bant genişliği kullanan iletişim.
+- Tenant bazlı, çok kurumlu mimariye uygunluk.
+- Yapay zekâ karar destek servislerine bağlanabilecek standart sağlık verisi modeli.
+- Hassas veriyi blockchain’e yazmadan kayıt bütünlüğü doğrulama.
+- Katmanlı mimari ile farklı cihaz ve servislerin sonradan eklenebilmesi.
+
+### Geliştirme Yol Haritası
+
+Kısa vadede gerçek Samsung Health adapter’ının tamamlanması, kalp atışı ve adım verilerinin cihazdan okunması, Wear OS yapılandırma ekranlarının eklenmesi ve MQTT uçtan uca testlerinin yapılması planlanmaktadır.
+
+Orta vadede Samsung Health Monitor destekli tansiyon senaryoları, CGM veya harici glikoz cihazı entegrasyonu, yapay zekâ sağlayıcısı, anomali tespiti ve doktor bildirimleri hedeflenmektedir.
+
+Uzun vadede bulut tabanlı deployment, yüksek erişilebilirlik, kurumsal kimlik yönetimi, resmi medikal cihaz entegrasyonları, mevzuat ve sertifikasyon süreçleri planlanmaktadır.
+
+### Mevcut Durum
+
+Hazır olan başlıca altyapılar:
+
+- .NET 10 Web API ve EF Core Code First.
+- SQL Server veri altyapısı.
+- CQRS, MediatR, JWT ve Swagger.
+- SignalR chat ve WebRTC signaling.
+- HealthMeasurement ve IoT device domain modelleri.
+- MQTT backend consumer ve Mosquitto Docker yapılandırması.
+- Wear OS Kotlin başlangıç uygulaması.
+- Samsung Galaxy Watch 8 MQTT veri akışı altyapısı.
+- Redis, RabbitMQ, blockchain ve health check altyapıları.
+- Unit test ve Codecov entegrasyonu.
+
+Geliştirilmesi gereken başlıca konular; gerçek Samsung Health SDK adapter’ı, cihaz üzerinde sensör testleri, tansiyon ve glikoz için desteklenen harici cihaz entegrasyonları, production MQTT güvenliği ve gerçek yapay zekâ servisidir.
+
+### Sonuç
+
+TeleTip; uzaktan sağlık hizmetleri, giyilebilir cihazlar, IoT veri toplama, görüntülü görüşme, gerçek zamanlı iletişim, yapay zekâ ve blockchain doğrulama teknolojilerini bir araya getiren genişletilebilir bir dijital sağlık platformudur.
+
+Proje, doktor kararının yerine geçmeyi değil; sağlık profesyonellerinin hastaya ait güncel ve anlamlı verilere daha hızlı ulaşmasını sağlayan bir karar destek ve uzaktan takip altyapısı oluşturmayı amaçlar. Gerçek sensör verilerinin kullanıma alınması; ilgili SDK erişimi, cihaz izinleri, medikal cihaz uyumluluğu, güvenlik kontrolleri ve gerekli mevzuat süreçlerinin tamamlanmasına bağlıdır.
+
 ## Durum
 
 Hazır olan özellikler:

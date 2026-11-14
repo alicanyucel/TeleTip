@@ -1,0 +1,555 @@
+TELETIP PROJESİ
+Teknoloji Geliştirme Bölgesi / Teknopark Tanıtım ve Proje Açıklama Metni
+
+1. PROJE ÖZETİ
+
+TeleTip, uzaktan sağlık hizmetlerini desteklemek amacıyla geliştirilen yapay zekâ, IoT, görüntülü görüşme, gerçek zamanlı iletişim ve güvenli veri yönetimi özelliklerini bir araya getiren dijital sağlık platformudur.
+
+Projenin temel amacı; hasta, doktor ve sağlık kuruluşları arasındaki iletişimi kolaylaştırmak, hastaların sağlık ölçümlerini dijital ortamda toplamak, doktorların bu verilere uzaktan erişebilmesini sağlamak ve sağlık hizmetlerinin daha hızlı, düzenli ve izlenebilir şekilde sunulmasına katkıda bulunmaktır.
+
+TeleTip; yalnızca bir görüntülü görüşme uygulaması değildir. Hasta yönetimi, doktor yönetimi, randevu ve telekonsültasyon süreçleri, sağlık ölçümleri, reçete ve rapor bilgileri, yapay zekâ destekli analiz, gerçek zamanlı chat, IoT cihaz verileri ve blockchain tabanlı kayıt doğrulama altyapısını kapsayan genişletilebilir bir sağlık teknolojileri platformudur.
+
+Proje, özellikle kronik hastaların takibi, uzaktan hasta izleme, doktor-hasta iletişimi, evde sağlık hizmetleri ve sağlık kuruluşlarının dijital dönüşümü için kullanılabilecek şekilde tasarlanmıştır.
+
+
+2. ÇÖZÜLMEK İSTENEN PROBLEM
+
+Geleneksel sağlık hizmetlerinde hastaların sağlık verileri farklı sistemlerde dağınık halde bulunabilmektedir. Evde yapılan ölçümler çoğu zaman manuel olarak kaydedilmekte, doktorlara geç ulaşmakta veya hiç paylaşılmamaktadır. Hasta ile doktor arasındaki iletişim ise telefon, mesajlaşma ve yüz yüze görüşme gibi birbirinden ayrı kanallar üzerinden yürütülebilmektedir.
+
+Bu durum aşağıdaki sorunlara yol açabilir:
+
+- Hastanın sağlık geçmişine bütünsel olarak erişilememesi.
+- Evde ölçülen kalp atışı, tansiyon, oksijen ve benzeri verilerin düzenli izlenememesi.
+- Doktorun hastanın güncel durumunu zamanında görememesi.
+- Acil risk oluşturabilecek değişimlerin geç fark edilmesi.
+- Görüşme, rapor, reçete ve ölçüm bilgilerinin farklı ortamlarda tutulması.
+- Hasta ve doktor arasındaki iletişim kayıtlarının düzenli yönetilememesi.
+- Sağlık kayıtlarının doğrulanabilirliği ve bütünlüğü konusunda ek güvenlik ihtiyacı.
+- Kırsal bölgelerde veya sağlık kuruluşuna ulaşımın zor olduğu durumlarda hizmete erişim güçlüğü.
+
+TeleTip bu sorunları tek bir dijital platform üzerinde birleştirilmiş, güvenli ve genişletilebilir bir mimari ile çözmeyi amaçlamaktadır.
+
+
+3. PROJENİN TEMEL AMAÇLARI
+
+TeleTip projesinin temel amaçları şunlardır:
+
+- Hastaların sağlık süreçlerini dijital ortamda takip edebilmek.
+- Doktor ve hasta arasındaki uzaktan iletişimi kolaylaştırmak.
+- Görüntülü görüşme ve gerçek zamanlı chat altyapısı sağlamak.
+- IoT cihazlarından gelen sağlık ölçümlerini sisteme aktarabilmek.
+- Samsung Galaxy Watch 8 gibi giyilebilir cihazlardan gelen verileri MQTT üzerinden işleyebilmek.
+- Sağlık ölçümlerini hasta ve kurum bazında düzenli şekilde saklamak.
+- Yapay zekâ analizleri için standartlaştırılmış sağlık verisi altyapısı oluşturmak.
+- Riskli değişimlerin ve anormal ölçümlerin daha erken fark edilmesine yardımcı olmak.
+- Sağlık kayıtlarının bütünlüğünü blockchain hash doğrulaması ile desteklemek.
+- Sağlık kuruluşlarının dijital dönüşüm süreçlerine uyum sağlayabilecek modüler bir sistem geliştirmek.
+
+
+4. HEDEF KULLANICILAR
+
+TeleTip aşağıdaki kullanıcı gruplarına hizmet verebilecek şekilde tasarlanmıştır:
+
+4.1. Hastalar
+
+- Kişisel sağlık bilgilerini yönetebilir.
+- Doktorlar ile görüntülü görüşme yapabilir.
+- Sağlık ölçümlerini sisteme aktarabilir veya bağlı cihazlardan gönderebilir.
+- Reçete, rapor ve analiz bilgilerine erişebilir.
+- Doktor ile güvenli mesajlaşabilir.
+
+4.2. Doktorlar
+
+- Hastaların sağlık bilgilerini ve ölçümlerini inceleyebilir.
+- Uzaktan görüntülü görüşme gerçekleştirebilir.
+- Hasta ile gerçek zamanlı iletişim kurabilir.
+- Sağlık ölçümlerindeki değişimleri izleyebilir.
+- Hastanın durumuna ilişkin analiz ve değerlendirme süreçlerini yönetebilir.
+
+4.3. Sağlık Kuruluşları
+
+- Hasta ve doktor süreçlerini merkezi olarak yönetebilir.
+- Kurum veya tenant bazında veri ayrımı sağlayabilir.
+- Sağlık operasyonlarını dijital ortamda izleyebilir.
+- IoT ve uzaktan izleme altyapısını hizmetlerine entegre edebilir.
+
+4.4. Araştırma ve Ar-Ge Ekipleri
+
+- Anonimleştirilmiş ve yetkilendirilmiş sağlık verileri üzerinden analiz altyapısı geliştirebilir.
+- Yapay zekâ modelleri için standart veri akışı oluşturabilir.
+- Giyilebilir cihazlar ve uzaktan hasta izleme senaryolarını test edebilir.
+
+
+5. ANA MODÜLLER
+
+5.1. Hasta Yönetimi
+
+Hasta kayıtları, kişisel bilgiler ve sağlık süreçleri sistem içinde yönetilebilir. Hasta bilgileri tenant yapısı ile kurum bazında ayrıştırılabilir.
+
+5.2. Doktor Yönetimi
+
+Doktorların sisteme tanımlanması, hastalarla ilişkilendirilmesi ve telekonsültasyon süreçlerinde kullanılması hedeflenmektedir.
+
+5.3. Telekonsültasyon
+
+Hasta ve doktorun uzaktan görüşme yapabilmesi için görüntülü görüşme altyapısı bulunmaktadır. Görüşme bağlantısının kurulması için SignalR, görüntü ve ses iletişimi için WebRTC kullanılmaktadır.
+
+SignalR; görüşme başlatma, görüşmeye katılma, offer, answer ve ICE candidate gibi sinyalleşme işlemlerini yürütür. Gerçek ses ve görüntü akışı WebRTC üzerinden peer-to-peer olarak gerçekleştirilir.
+
+5.4. Gerçek Zamanlı Chat
+
+Hasta ve doktorun görüşme sırasında veya ayrı bir iletişim kanalı üzerinden mesajlaşabilmesi için SignalR tabanlı gerçek zamanlı chat altyapısı bulunmaktadır. Mesajlar gerektiğinde veritabanında saklanabilecek şekilde tasarlanmıştır.
+
+5.5. Sağlık Ölçümleri
+
+Kalp atış hızı, tansiyon, glikoz, oksijen satürasyonu, vücut sıcaklığı ve benzeri ölçümler standart bir HealthMeasurement modeli üzerinden tutulur.
+
+Her ölçümde aşağıdaki bilgiler bulunabilir:
+
+- Hasta kimliği
+- Ölçüm türü
+- Ölçüm değeri
+- Ölçüm birimi
+- Ölçüm zamanı
+- Ölçümü gönderen cihaz kimliği
+- Tenant veya kurum bilgisi
+- Veri kaynağı
+
+5.6. IoT ve Giyilebilir Cihaz Entegrasyonu
+
+TeleTip, sağlık verilerinin IoT cihazlarından alınmasına uygun bir altyapı sunmaktadır. Backend tarafında MQTT tabanlı veri alımı yapılmaktadır.
+
+Samsung Galaxy Watch 8 için Wear OS ve Kotlin tabanlı bir başlangıç uygulaması hazırlanmıştır. Bu uygulama, giyilebilir cihazdan alınan normalize edilmiş sağlık ölçümlerini MQTT broker’a gönderecek şekilde tasarlanmıştır.
+
+Veri akışı şu şekildedir:
+
+Samsung Galaxy Watch 8 sensörleri
+		|
+		v
+Samsung Health / Health Services SDK
+		|
+		v
+Wear OS Kotlin uygulaması
+		|
+		v
+MQTT broker / Mosquitto
+		|
+		v
+TeleTip MQTT consumer
+		|
+		v
+HealthMeasurements veritabanı tablosu
+		|
+		v
+Doktor ve sağlık uygulamaları
+
+MQTT topic formatı:
+
+teletip/tenants/{tenantId}/patients/{patientId}/measurements
+
+Örnek MQTT payload:
+
+{
+  "deviceId": "00000000-0000-0000-0000-000000000001",
+  "type": "HeartRate",
+  "value": 72,
+  "unit": "bpm",
+  "measuredAt": "2026-01-01T12:00:00Z",
+  "source": "Samsung Galaxy Watch 8"
+}
+
+Backend tarafındaki MQTT tüketicisi; topic bilgisini doğrular, tenant ve hasta kimliğini ayırır, payload formatını kontrol eder, ölçüm değerini doğrular ve geçerli veriyi SQL Server veritabanına kaydeder.
+
+5.7. Yapay Zekâ Analiz Altyapısı
+
+Projede yapay zekâ analizlerinin kullanılabileceği bir domain ve uygulama altyapısı bulunmaktadır. Bu altyapı aşağıdaki senaryoları destekleyecek şekilde genişletilebilir:
+
+- Genel sağlık durumu analizi
+- Risk tespiti
+- Ölçümlerdeki olağan dışı değişimlerin belirlenmesi
+- Doktora uyarı oluşturulması
+- Risk skoru hesaplanması
+- Hastanın geçmiş ölçümlerinin karşılaştırılması
+- Kronik hastalık takip desteği
+
+Mevcut sistem yapay zekâ sağlayıcısına bağımlı değildir. Azure OpenAI, OpenAI veya kurumun kendi geliştireceği bir makine öğrenmesi modeli sisteme sonradan bağlanabilir.
+
+Yapay zekâ çıktıları doktor kararının yerine geçmez. Sistem, sağlık profesyonellerine karar destek bilgisi sunmayı amaçlar.
+
+5.8. Reçete, Rapor ve Bildirim Yönetimi
+
+Reçete, tıbbi rapor, analiz ve bildirim gibi sağlık süreçleri için domain modelleri bulunmaktadır. Bu modeller ilerleyen aşamalarda doktor onayı, hasta bilgilendirmesi ve entegrasyon servisleri ile genişletilebilir.
+
+5.9. Blockchain ile Kayıt Doğrulama
+
+TeleTip, sağlık verisinin kendisini blockchain’e göndermek yerine sağlık kaydının kriptografik özetini blockchain üzerinde doğrulatmayı hedeflemektedir.
+
+Blockchain üzerinde hassas hasta verisi tutulmaz. Bunun yerine aşağıdaki bilgiler kullanılabilir:
+
+- Kayıt hash’i
+- Kayıt kimliği hash’i
+- Blockchain transaction hash’i
+- Block number
+- Doğrulama zamanı
+
+Bu yaklaşım, kişisel sağlık bilgilerinin gizliliğini korurken kayıt bütünlüğünün daha sonra kontrol edilebilmesine yardımcı olur.
+
+
+6. TEKNİK MİMARİ
+
+TeleTip, katmanlı mimari ve Clean Architecture yaklaşımına yakın bir yapı kullanmaktadır.
+
+6.1. TeleTip.Domain
+
+Domain katmanında aşağıdaki bileşenler bulunur:
+
+- Hasta, doktor ve sağlık ölçümü entity’leri
+- IoT cihaz entity’leri
+- Telekonsültasyon entity’si
+- Reçete ve rapor entity’leri
+- Yapay zekâ analiz entity’si
+- Bildirim ve chat mesajı entity’leri
+- Domain kuralları
+- Result ve Error modelleri
+- Repository abstraction’ları
+
+Bu katman, iş kurallarının temelini oluşturur ve dış teknolojilere mümkün olduğunca bağımlı değildir.
+
+6.2. TeleTip.Application
+
+Application katmanında uygulama kullanım senaryoları bulunur:
+
+- CQRS command ve query yapıları
+- MediatR handler’ları
+- DTO modelleri
+- Validasyonlar
+- Uygulama servisleri
+- Repository abstraction kullanımı
+
+Bu katman, kullanıcı isteğini domain işlemlerine dönüştürür.
+
+6.3. TeleTip.Infrastructure
+
+Infrastructure katmanı teknik entegrasyonları içerir:
+
+- Entity Framework Core
+- SQL Server
+- AppDbContext
+- Repository implementasyonları
+- MQTTnet ve MQTT consumer
+- Redis
+- RabbitMQ ve MassTransit
+- Blockchain/Nethereum entegrasyonu
+- Uygulama dışı servis bağlantıları
+
+6.4. TeleTip.WebAPI
+
+Web API katmanında aşağıdaki bileşenler bulunur:
+
+- ASP.NET Core controller’ları
+- JWT authentication
+- Authorization
+- Swagger
+- SignalR hub’ları
+- WebRTC sinyalleşme endpoint’leri
+- Health check endpoint’leri
+- Uygulama başlangıç yapılandırması
+
+6.5. TeleTip.Tests
+
+Test projesinde domain entity’leri, validasyonlar, CQRS handler’ları ve repository etkileşimleri için unit testler bulunmaktadır.
+
+
+7. KULLANILAN TEKNOLOJİLER
+
+- .NET 10
+- ASP.NET Core Web API
+- Entity Framework Core 10
+- SQL Server
+- MediatR
+- CQRS
+- SignalR
+- WebRTC
+- JWT Authentication ve Authorization
+- Swagger / OpenAPI
+- MQTTnet
+- Eclipse Mosquitto
+- Wear OS
+- Kotlin
+- Samsung Health entegrasyon adapter’ı
+- Redis
+- RabbitMQ
+- MassTransit
+- Serilog
+- OpenTelemetry
+- Health Checks
+- Nethereum Web3
+- Ethereum/EVM uyumlu blockchain
+- Hardhat local blockchain
+- Docker Compose
+- xUnit
+- FluentAssertions
+- NSubstitute
+
+
+8. VERİTABANI VE VERİ YÖNETİMİ
+
+Proje Entity Framework Core Code First yaklaşımını kullanmaktadır. Veritabanı tabloları domain entity’lerinden oluşturulur ve migration mekanizması ile yönetilir.
+
+Temel entity’ler:
+
+- Patient
+- Doctor
+- TelemedicineConsultation
+- IoTDevice
+- HealthMeasurement
+- Prescription
+- MedicalReport
+- AiAnalysis
+- Notification
+- ChatMessage
+
+HealthMeasurement kayıtları hasta, cihaz, ölçüm türü, değer, birim ve zaman bilgileri ile saklanır.
+
+Tenant bazlı veri filtreleme sayesinde farklı kurumlara ait verilerin birbirinden ayrılması hedeflenmektedir. Bu yapı, çok kiracılı SaaS modeline geçiş için temel oluşturmaktadır.
+
+
+9. GÜVENLİK VE GİZLİLİK
+
+TeleTip sağlık verileri işlediği için güvenlik, gizlilik ve erişim kontrolü projenin en önemli konularındandır.
+
+Mevcut güvenlik yaklaşımı:
+
+- JWT tabanlı kimlik doğrulama
+- Controller seviyesinde authorization
+- SignalR hub seviyesinde authorization
+- Tenant bazlı veri ayrımı
+- HTTPS kullanımı
+- Hassas verilerin blockchain’e gönderilmemesi
+- Secret ve private key değerlerinin User Secrets veya environment variable ile saklanması
+- MQTT payload doğrulaması
+- Geçersiz topic ve ölçümlerin reddedilmesi
+
+Production ortamında ayrıca aşağıdaki önlemler alınmalıdır:
+
+- Güçlü ve döndürülmüş JWT secret kullanımı
+- Refresh token mekanizması
+- Hasta ve doktor rollerinin ayrıştırılması
+- MQTT için TLS kullanılması
+- MQTT kullanıcı adı ve parola doğrulaması
+- Cihaz bazlı sertifika veya token kullanımı
+- Topic bazlı erişim yetkilendirmesi
+- Rate limiting
+- Güvenilir domain’lerle sınırlandırılmış CORS
+- Merkezi secret manager kullanımı
+- Loglarda kişisel sağlık verilerinin tutulmaması
+- Veri saklama ve silme politikalarının uygulanması
+- Yetkisiz erişim ve anomali izleme
+
+
+10. SENSÖR VE SAĞLIK VERİSİ GERÇEKLEŞTİRME DURUMU
+
+Projedeki MQTT backend ve veri kayıt altyapısı hazırdır. Wear OS Kotlin uygulaması da MQTT gönderimi için başlangıç seviyesinde hazırlanmıştır.
+
+Ancak gerçek sensör verilerinin alınabilmesi için saat tarafında Samsung Health veya Health Services SDK ile gerçek adapter kodunun tamamlanması, gerekli geliştirici izinlerinin alınması ve cihaz üzerinde test yapılması gerekir.
+
+Alınabilecek veri türleri cihaz, ülke, SDK ve izin durumuna göre değişebilir. Kalp atış hızı, aktivite, adım ve benzeri veriler desteklenen servisler üzerinden alınabilir.
+
+Tansiyon ölçümü için Samsung Health Monitor desteği ve düzenli manşet kalibrasyonu gerekebilir. Galaxy Watch’ın her model ve bölgede sürekli veya doğrudan klinik tansiyon ölçümü yaptığı varsayılmamalıdır.
+
+Glikoz/kan şekeri verisi doğrudan Galaxy Watch sensöründen alınamaz. Bu veri için desteklenen bir CGM veya harici tıbbi cihaz entegrasyonu gerekir.
+
+Bu nedenle proje, sağlık verilerinin işlenmesi için teknik altyapıyı sağlamaktadır; cihazdan gerçek ve klinik veri alınması ise cihaz, SDK, izin ve sertifikasyon koşullarına bağlıdır.
+
+
+11. KURULUM VE ÇALIŞTIRMA
+
+Gereksinimler:
+
+- .NET 10 SDK veya Visual Studio 2026
+- SQL Server veya SQL Server Express
+- İsteğe bağlı Docker Desktop
+- Android Studio ve JDK 17
+- Wear OS test cihazı veya emülatör
+- Blockchain testleri için Node.js ve npm
+
+Backend kurulumu:
+
+1. Repository klonlanır.
+
+   git clone https://github.com/alicanyucel/TeleTip.git
+   cd TeleTip
+
+2. Paketler yüklenir ve solution derlenir.
+
+   dotnet restore
+   dotnet build
+
+3. MQTT broker başlatılır.
+
+   docker compose up -d mosquitto
+
+4. API çalıştırılır.
+
+   dotnet run --project .\src\TeleTip.WebAPI\TeleTip.WebAPI.csproj
+
+5. Swagger açılır.
+
+   https://localhost:7139/swagger
+
+MQTT ayarları aşağıdaki dosyada bulunur:
+
+src/TeleTip.WebAPI/appsettings.json
+
+Backend MQTT consumer dosyası:
+
+src/TeleTip.Infrastructure/Messaging/Mqtt/GalaxyWatchMqttConsumer.cs
+
+Wear OS uygulaması:
+
+mobile/TeleTipWatch
+
+Wear OS uygulamasının gerçek cihaz üzerinde çalışması için Android Studio ile açılması, SDK bağımlılıklarının yüklenmesi, uygulamanın imzalanması ve gerekli saat izinlerinin verilmesi gerekir.
+
+
+12. ÖRNEK API MODÜLLERİ
+
+TeleTip API içerisinde aşağıdaki temel kaynaklar için endpoint yapıları bulunmaktadır:
+
+- GET /api/telecare/patients
+- GET /api/telecare/patients/{id}
+- POST /api/telecare/patients
+- GET /api/telecare/doctors
+- POST /api/telecare/doctors
+- GET /api/telecare/consultations
+- POST /api/telecare/consultations
+- GET /api/telecare/devices
+- POST /api/telecare/devices
+- GET /api/telecare/measurements
+- POST /api/telecare/measurements
+- GET /api/telecare/prescriptions
+- POST /api/telecare/prescriptions
+- GET /api/telecare/reports
+- POST /api/telecare/reports
+- GET /api/telecare/analyses
+- POST /api/telecare/analyses
+- GET /api/telecare/notifications
+- POST /api/telecare/notifications
+- GET /api/telecare/chat-messages
+- POST /api/telecare/chat-messages
+
+IoT saat telemetrisi için ana veri taşıma yöntemi MQTT’dir. MQTT HTTP endpoint’inden farklı olarak sürekli veri akışı için kullanılır. İhtiyaç halinde MQTT’ye ek olarak cihazlar için HTTP tabanlı güvenli bir IoT endpoint’i de eklenebilir.
+
+
+13. PROJENİN YENİLİKÇİ YÖNLERİ
+
+- Telekonsültasyon, chat ve sağlık ölçümlerini tek platformda birleştirmesi.
+- Giyilebilir cihazlardan gelen verileri sağlık süreçlerine dahil etmeye uygun olması.
+- MQTT ile düşük bant genişliği ve sürekli telemetri desteği.
+- Tenant bazlı çok kurumlu mimariye uygunluk.
+- Yapay zekâ destekli karar destek altyapısına hazır olması.
+- Sağlık kayıtlarının blockchain üzerinde veri ifşa etmeden doğrulanabilmesi.
+- Katmanlı mimari sayesinde farklı cihaz ve servislerin sonradan eklenebilmesi.
+- Samsung Galaxy Watch 8 gibi modern giyilebilir cihazlara yönelik genişletilebilir adapter yaklaşımı.
+- Açık kaynak ve standart teknolojiler kullanması.
+
+
+14. TİCARİ VE SOSYAL KATKI
+
+TeleTip’in ticari olarak aşağıdaki kullanım alanları bulunmaktadır:
+
+- Özel hastaneler
+- Aile hekimliği ve klinikler
+- Evde sağlık hizmeti veren kuruluşlar
+- Kronik hastalık takip merkezleri
+- Yaşlı bakım hizmetleri
+- Kurumsal sağlık çözümleri
+- Giyilebilir cihaz ve medikal cihaz üreticileri
+- Sigorta ve sağlık hizmeti platformları
+- Sağlık araştırma merkezleri
+
+Sosyal açıdan proje; sağlık kuruluşuna ulaşımın zor olduğu hastaların takibini kolaylaştırabilir, doktor-hasta iletişimini hızlandırabilir ve düzenli sağlık ölçümü gerektiren kişilerin daha etkin izlenmesine yardımcı olabilir.
+
+
+15. GELİŞTİRME YOL HARİTASI
+
+Kısa vadeli hedefler:
+
+- Samsung Health SDK adapter’ının gerçek sensörlerle tamamlanması.
+- Kalp atış hızı ve adım verilerinin gerçek cihazdan okunması.
+- Wear OS uygulamasına hasta, tenant ve cihaz yapılandırma ekranlarının eklenmesi.
+- MQTT mesajlarının gerçek Mosquitto broker ile uçtan uca test edilmesi.
+- MQTT için TLS ve cihaz kimlik doğrulamasının eklenmesi.
+- IoT entegrasyon testlerinin artırılması.
+
+Orta vadeli hedefler:
+
+- Samsung Health Monitor destekli tansiyon senaryolarının araştırılması.
+- CGM veya harici glikoz cihazı entegrasyonu.
+- Gerçek yapay zekâ sağlayıcısının bağlanması.
+- Anomali tespiti ve doktor bildirimleri.
+- Hasta takip ekranlarının geliştirilmesi.
+- Mobil hasta ve doktor uygulamalarının hazırlanması.
+- Sağlık kuruluşları için yönetim paneli.
+
+Uzun vadeli hedefler:
+
+- Üretim ortamında yüksek erişilebilirlik.
+- Kubernetes veya bulut tabanlı deployment.
+- Azure servisleri ile entegrasyon.
+- Kimlik ve erişim yönetiminin kurumsal seviyeye taşınması.
+- Medikal cihaz üreticileri ile resmi entegrasyonlar.
+- Gerekli mevzuat, güvenlik ve sertifikasyon süreçlerinin tamamlanması.
+- Anonimleştirilmiş verilerle araştırma ve yapay zekâ modellerinin geliştirilmesi.
+
+
+16. PROJENİN MEVCUT DURUMU
+
+Tamamlanan veya altyapısı hazırlanan özellikler:
+
+- .NET 10 Web API
+- Entity Framework Core Code First
+- SQL Server veri altyapısı
+- CQRS ve MediatR yapısı
+- Hasta ve doktor yönetimi
+- Telekonsültasyon altyapısı
+- SignalR gerçek zamanlı iletişim
+- WebRTC sinyalleşme altyapısı
+- JWT authentication ve authorization
+- Swagger/OpenAPI
+- Sağlık ölçümü domain modeli
+- IoT cihaz domain modeli
+- MQTT backend consumer
+- Mosquitto Docker yapılandırması
+- Wear OS Kotlin başlangıç uygulaması
+- Samsung Galaxy Watch 8 MQTT veri akışı altyapısı
+- Redis ve RabbitMQ altyapısı
+- Blockchain hash notarization altyapısı
+- Yapay zekâ analiz modeli için temel altyapı
+- Health check altyapısı
+- Unit test ve Codecov entegrasyonu
+
+Devam eden veya geliştirilmesi gereken özellikler:
+
+- Gerçek Samsung Health SDK adapter’ı
+- Gerçek saat sensörleriyle uçtan uca test
+- Tansiyon ve glikoz için desteklenen harici cihaz entegrasyonları
+- Production MQTT güvenliği
+- Gerçek yapay zekâ servisinin bağlanması
+- Doktor ve hasta rollerinin daha ayrıntılı uygulanması
+- TURN server kurulumu
+- Mobil kullanıcı uygulamalarının geliştirilmesi
+- Üretim ortamı izleme ve operasyon altyapısı
+
+
+17. SONUÇ
+
+TeleTip; uzaktan sağlık hizmetleri, giyilebilir cihazlar, IoT veri toplama, görüntülü görüşme, gerçek zamanlı iletişim, yapay zekâ ve blockchain doğrulama teknolojilerini aynı mimari içinde birleştiren yenilikçi bir dijital sağlık projesidir.
+
+Projenin mevcut altyapısı, sağlık ölçümlerinin güvenli ve düzenli şekilde alınmasına, saklanmasına ve uygulama içinde kullanılmasına olanak sağlayacak şekilde hazırlanmıştır. MQTT tabanlı mimari sayesinde Samsung Galaxy Watch 8 gibi cihazlardan gelen veriler ilerleyen aşamalarda sisteme aktarılabilir.
+
+TeleTip’in hedefi, doktorun kararını değiştiren veya yerine geçen bir sistem oluşturmak değil; sağlık profesyonellerinin hastaya ait güncel ve anlamlı verilere daha hızlı ulaşmasını sağlayan bir karar destek ve uzaktan takip platformu oluşturmaktır.
+
+Gerçek cihaz sensörlerinin kullanıma alınması, ilgili SDK izinlerinin tamamlanması, medikal cihaz entegrasyonlarının yapılması, güvenlik kontrollerinin uygulanması ve gerekli mevzuat/sertifikasyon süreçlerinin tamamlanması ile proje üretim ortamında kullanılabilecek seviyeye taşınabilir.
+
+Bu doküman, TeleTip projesinin Teknopark/Teknoloji Geliştirme Bölgesi başvurusu, proje tanıtımı ve teknik değerlendirme süreçlerinde kullanılmak üzere hazırlanmıştır.
