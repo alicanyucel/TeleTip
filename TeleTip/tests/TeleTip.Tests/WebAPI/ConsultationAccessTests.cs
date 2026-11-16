@@ -54,6 +54,53 @@ public sealed class ConsultationAccessTests
     }
 
     [Fact]
+    public void TryGetIdentity_WithUnauthenticatedPrincipal_ReturnsFalse()
+    {
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim("sub", Guid.NewGuid().ToString()),
+            new Claim("role", "Doctor")
+        ]));
+
+        ConsultationAccess.TryGetIdentity(principal, out _).Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("Admin")]
+    [InlineData("")]
+    public void TryGetIdentity_WithUnsupportedOrMissingRole_ReturnsFalse(string role)
+    {
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim("sub", Guid.NewGuid().ToString()),
+            new Claim("role", role)
+        ], "test"));
+
+        ConsultationAccess.TryGetIdentity(principal, out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public void TryGetIdentity_WithMissingSubject_ReturnsFalse()
+    {
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(
+        [new Claim("role", "Patient")], "test"));
+
+        ConsultationAccess.TryGetIdentity(principal, out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public void TryGetIdentity_WithEmptyGuidSubject_ReturnsFalse()
+    {
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim("sub", Guid.Empty.ToString()),
+            new Claim("role", "Doctor")
+        ], "test"));
+
+        ConsultationAccess.TryGetIdentity(principal, out _).Should().BeFalse();
+    }
+
+    [Fact]
     public void TurnServerOptions_WithoutTurnUrls_IsValid()
     {
         new TurnServerOptions().IsValid().Should().BeTrue();

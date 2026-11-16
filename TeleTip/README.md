@@ -553,6 +553,16 @@ android.permission.ACTIVITY_RECOGNITION
 
 ## Güvenlik
 
+Test projesinde Doctor/Patient JWT claim doğrulaması, TURN yapılandırması ve API erişim kontrolleri için otomatik güvenlik regresyon testleri bulunur. Yerel HTTP entegrasyon testleri kimlik doğrulamamış chat erişimini, hastanın hasta listesini veya başka bir hastanın kaydını istemesini, doktorun atanmadığı görüşmenin chat geçmişine erişmesini ve sayfalı geçmişin görüşme kapsamını doğrular. Test auth şeması ve bellek içi veritabanı kullanılır; production JWT sağlayıcısını veya gerçek bir dağıtımı sınamaz.
+
+Testleri çalıştırmak için:
+
+```powershell
+dotnet test .\tests\TeleTip.Tests\TeleTip.Tests.csproj --filter FullyQualifiedName~TeleCareSecurityIntegrationTests
+```
+
+Bu otomatik kontroller bağımsız penetrasyon testi değildir ve gerçek deployment üzerinde güvenlik değerlendirmesinin yerine geçmez. Production öncesi bağımsız, yetkili ve kapsamı yazılı bir penetrasyon testi yapılmalı; bulgular giderilip yeniden test edilmelidir.
+
 - JWT authentication
 - Controller seviyesinde `[Authorize]`
 - SignalR hub seviyesinde `[Authorize]`
@@ -568,6 +578,7 @@ Production ortamında ayrıca şu önlemler alınmalıdır:
 - Gerçek ve güçlü JWT secret kullanımı
 - Refresh token mekanizması
 - TURN sunucusunu production ortamında kurup TLS, kota ve erişim kurallarıyla güvenli yapılandırma
+- Production öncesi yetkili ve kapsamı belirlenmiş bağımsız penetrasyon testi; bulguların giderilmesi ve yeniden test edilmesi
 - Rate limiting ayarlarının gözden geçirilmesi
 - CORS adreslerinin sadece güvenilir domain’lerle sınırlandırılması
 - Secret manager kullanımı
@@ -848,4 +859,5 @@ Geliştirilmesi gereken özellikler:
 - Wear OS için hasta/tenant yapılandırma ekranı
 - Production MQTT için TLS ve cihaz kimlik doğrulaması
 - Production ortamında TURN sunucusunun kurulumu, TLS ve güvenlik ayarları
+- Production öncesi bağımsız penetrasyon testi ve kritik/yüksek bulguların giderilmesi
 - Production blockchain ağına deployment
