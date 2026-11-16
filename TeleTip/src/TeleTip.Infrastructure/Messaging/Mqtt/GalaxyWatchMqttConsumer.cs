@@ -7,6 +7,7 @@ using MyProject.Domain.Entities;
 using MyProject.Infrastructure.Persistence;
 using System.Buffers;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace MyProject.Infrastructure.Messaging.Mqtt
 {
@@ -15,6 +16,11 @@ namespace MyProject.Infrastructure.Messaging.Mqtt
         IServiceScopeFactory scopeFactory,
         ILogger<GalaxyWatchMqttConsumer> logger) : BackgroundService
     {
+        private static readonly JsonSerializerOptions PayloadJsonOptions = new(JsonSerializerDefaults.Web)
+        {
+            Converters = { new JsonStringEnumConverter() }
+        };
+
         private readonly MqttOptions _options = options.Value;
         private IMqttClient? _client;
 
@@ -75,10 +81,10 @@ namespace MyProject.Infrastructure.Messaging.Mqtt
             try
             {
                 var payload = eventArgs.ApplicationMessage.Payload;
-                var message = JsonSerializer.Deserialize<WatchMeasurementMessage>(payload.ToArray());
+                var message = JsonSerializer.Deserialize<WatchMeasurementMessage>(payload.ToArray(), PayloadJsonOptions);
                 if (message is null || message.DeviceId == Guid.Empty || message.Value < 0 || string.IsNullOrWhiteSpace(message.Unit))
                 {
-                    logger.LogWarning("Ignoring invalid Galaxy Watch measurement payload.");
+                    logger.LogWarning("Ignoring invalid MQTT telemetry payload.");
                     return;
                 }
 
@@ -104,11 +110,11 @@ namespace MyProject.Infrastructure.Messaging.Mqtt
             }
             catch (JsonException exception)
             {
-                logger.LogWarning(exception, "Ignoring malformed Galaxy Watch MQTT payload.");
+                logger.LogWarning(exception, "Ignoring malformed MQTT telemetry payload.");
             }
             catch (Exception exception)
             {
-                logger.LogError(exception, "Failed to persist Galaxy Watch measurement.");
+                logger.LogError(exception, "Failed to persist MQTT telemetry measurement.");
             }
         }
 

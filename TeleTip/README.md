@@ -430,6 +430,47 @@ MQTT tüketicisi aşağıdaki dosyada bulunur:
 src/TeleTip.Infrastructure/Messaging/Mqtt/GalaxyWatchMqttConsumer.cs
 ```
 
+### Linux IoT gateway
+
+Linux tabanlı bir cihaz (ör. Raspberry Pi veya Linux gateway), yerel sensör uygulamasından aldığı ölçümü aşağıdaki MQTT istemcisiyle TeleTip’e gönderebilir. Bu entegrasyon MQTT aktarımını sağlar; belirli sensörlerin Linux sürücüsü veya donanım bağlantısı projeye dahil değildir. Sensör uygulaması ölçüm okuduğunda istemciyi çağırmalıdır.
+
+İstemci dosyaları `linux/iot-gateway` altındadır. Linux cihazda Python 3 ve erişilebilir bir MQTT broker gerekir:
+
+```bash
+cd linux/iot-gateway
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Broker adresini ve varsa kimlik bilgilerini ortam değişkenleriyle ayarlayın:
+
+```bash
+export TELETIP_MQTT_HOST=192.168.1.10
+export TELETIP_MQTT_PORT=1883
+# Gerekliyse broker hesabı:
+export TELETIP_MQTT_USERNAME=linux-device
+export TELETIP_MQTT_PASSWORD='your-device-password'
+# TLS kullanılıyorsa broker CA sertifikası:
+export TELETIP_MQTT_TLS_CA=/etc/ssl/certs/mqtt-ca.crt
+```
+
+Örnek ölçüm gönderimi:
+
+```bash
+python teletip_mqtt_publisher.py \
+  --tenant tenant-1 \
+  --patient 00000000-0000-0000-0000-000000000002 \
+  --device 00000000-0000-0000-0000-000000000003 \
+  --type HeartRate \
+  --value 72 \
+  --unit bpm
+```
+
+İstemci UUID biçimindeki hasta ve cihaz kimliklerini doğrular, ölçüm değerini MQTT QoS 1 ile yayınlar ve broker onayı gelmezse hata döndürür. Desteklenen ölçüm türleri: `HeartRate`, `BloodPressure`, `BloodGlucose`, `OxygenSaturation`, `BodyTemperature`. Tarih verilmezse UTC zamanı kullanılır; cihazın ölçüm zamanını belirtmek için `--measured-at 2026-11-16T14:30:00Z` kullanılabilir.
+
+Docker Compose ile geliştirici ortamında broker’ı başlatmak için proje kökünde `docker compose up -d mosquitto` çalıştırın. Mesajları veritabanına kaydetmek için TeleTip API’nin de çalışıyor olması gerekir; host üzerinde çalışan API için MQTT host ayarı `127.0.0.1` olmalı, container içindeki API ise Compose’un `mosquitto` servis adını kullanır. Linux cihazdan erişim için `TELETIP_MQTT_HOST` değerine Docker’ın çalıştığı makinenin LAN IP adresini yazın. Mevcut geliştirme Mosquitto yapılandırması anonim erişime açıktır; internete veya güvenilmeyen bir ağa açmayın. Gerçek sağlık verisi taşıyan üretim ortamında TLS, cihaz başına kullanıcı/şifre ve topic yetkilendirmesi zorunludur.
+
 ### Sağlık verisi ve cihaz kısıtları
 
 - Kalp atışı, aktivite ve benzeri veriler cihaz ile Samsung Health izinlerine bağlıdır.
