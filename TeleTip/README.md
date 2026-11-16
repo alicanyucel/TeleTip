@@ -75,7 +75,13 @@ Web API, .NET 10 Linux container'ı olarak `linux/amd64` ve `linux/arm64` üzeri
 
 > SQL Server Linux container'ı ARM64 üzerinde desteklenmediğinden, gömülü cihaz dağıtımında SQL Server'ı x64 Linux sunucuda veya başka bir erişilebilir SQL Server ortamında çalıştırın. Linux masaüstü MAUI uygulama hedefi bu projede bulunmuyor; cihazlar MQTT üzerinden TeleTip API'ye veri gönderebilir.
 
-Linux ARM64 cihazında `TeleTip` klasöründen `.env` dosyası oluşturun. Aşağıdaki değerleri gerçek ortamınıza göre değiştirin:
+Linux ARM64 cihazında `TeleTip` klasöründe örnek ortam dosyasını kopyalayın ve gerçek değerlerle güncelleyin:
+
+```bash
+cp .env.example .env
+```
+
+`.env` içindeki SQL Server bağlantısı uzak veritabanınıza erişmeli; RabbitMQ ve JWT secret değerlerini de değiştirin:
 
 ```dotenv
 TELETIP_SQLSERVER_CONNECTION="Server=db.example.local;Database=TeleTip;User Id=teletip;Password=replace-with-a-secret;Encrypt=True;TrustServerCertificate=True"
