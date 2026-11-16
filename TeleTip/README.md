@@ -567,11 +567,12 @@ Production ortamında ayrıca şu önlemler alınmalıdır:
 
 - Gerçek ve güçlü JWT secret kullanımı
 - Refresh token mekanizması
-- Doctor/Patient role-based authorization
-- TURN server güvenliği
+- TURN sunucusunu production ortamında kurup TLS, kota ve erişim kurallarıyla güvenli yapılandırma
 - Rate limiting ayarlarının gözden geçirilmesi
 - CORS adreslerinin sadece güvenilir domain’lerle sınırlandırılması
 - Secret manager kullanımı
+
+Doktor/hasta rol politikaları ve görüşme katılımcısı bazlı erişim kontrolleri uygulanmıştır. Production’a geçmeden önce JWT sağlayıcısının `sub` ve `role` claim’lerini doğru ürettiği doğrulanmalıdır.
 
 ## Proje Yapısı
 
@@ -836,6 +837,9 @@ Hazır olan özellikler:
 - Health checks
 - MQTT tabanlı Galaxy Watch 8 telemetrisi
 - Wear OS Kotlin başlangıç uygulaması
+- Doctor/Patient rol tabanlı yetkilendirme ve atanmış görüşme/hasta bazlı erişim kontrolleri
+- Chat geçmişinde görüşme, gönderen rolü ve tarih aralığı filtreleri ile sayfalama
+- TURN sunucusu için yapılandırma ve kısa ömürlü kimlik bilgisi üretimi
 
 Geliştirilmesi gereken özellikler:
 
@@ -843,7 +847,5 @@ Geliştirilmesi gereken özellikler:
 - Samsung Health SDK’nın onaylı cihaz adapter’ı
 - Wear OS için hasta/tenant yapılandırma ekranı
 - Production MQTT için TLS ve cihaz kimlik doğrulaması
-- TURN server
-- Doctor/Patient role-based authorization
-- Chat geçmişi için filtreleme ve sayfalama
+- Production ortamında TURN sunucusunun kurulumu, TLS ve güvenlik ayarları
 - Production blockchain ağına deployment
