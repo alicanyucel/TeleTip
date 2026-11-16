@@ -6,9 +6,7 @@ namespace MyProject.WebAPI.Contracts
         Patient
     }
 
-    public sealed record JoinConsultationRequest(
-        Guid ConsultationId,
-        ConsultationParticipantRole Role);
+    public sealed record JoinConsultationRequest(Guid ConsultationId);
 
     public sealed record ChatMessage(
         Guid ConsultationId,

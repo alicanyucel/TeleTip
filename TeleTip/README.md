@@ -210,6 +210,17 @@ Authorization: Bearer <JWT_TOKEN>
 
 Token olmadan korumalı endpoint’ler `401 Unauthorized` döndürür.
 
+Doctor/Patient yetkilendirmesinde JWT aşağıdaki claim’leri içermelidir:
+
+```json
+{
+  "sub": "doktor-veya-hasta-entity-guid",
+  "role": "Doctor"
+}
+```
+
+`role` değeri `Doctor` veya `Patient` olmalı; `sub` ilgili doktor/hasta kaydının GUID kimliğiyle eşleşmelidir. JWT üretimi uygulama dışında yapılıyorsa bu claim’leri token’a ekleyin. Görüşme ve chat erişimi ayrıca kullanıcının ilgili danışmadaki doktor veya hasta olarak atanmış olmasını gerektirir; istemciden gönderilen rol bilgisi kullanılmaz.
+
 ## API Kullanımı
 
 Ana API adresi:
@@ -251,9 +262,21 @@ POST /api/telecare/analyses
 GET  /api/telecare/notifications
 POST /api/telecare/notifications
 
-GET  /api/telecare/chat-messages
+GET  /api/telecare/chat-messages?consultationId={guid}&page=1&pageSize=50
+GET  /api/telecare/chat-messages/{messageId}
 POST /api/telecare/chat-messages
+GET  /api/telecare/ice-servers?consultationId={guid}
 ```
+
+Chat geçmişi yalnızca görüşmenin atanmış doktoru veya hastası tarafından sorgulanabilir. `senderRole` (`Doctor`/`Patient`), `sentAfter` ve `sentBefore` (UTC ISO 8601) filtreleri desteklenir. `page` 1’den başlar; `pageSize` 1–100 arasındadır. Sonuçlar gönderim zamanına göre sıralanır ve `items`, `page`, `pageSize`, `totalCount` alanlarını içerir.
+
+Örnek:
+
+```text
+GET /api/telecare/chat-messages?consultationId={guid}&senderRole=Doctor&sentAfter=2026-01-01T00:00:00Z&page=1&pageSize=20
+```
+
+Chat mesajı oluştururken yalnızca `consultationId` ve `message` gönderilir; gönderen kimliği ve rolü JWT’den alınır.
 
 Örnek hasta oluşturma isteği:
 
@@ -280,9 +303,8 @@ Gerekli işlemler:
 1. API’yi çalıştırın.
 2. İki farklı tarayıcı sekmesinde görüşme sayfasını açın.
 3. Her iki sekmede aynı consultation GUID kullanın.
-4. Bir sekmede `Doktor`, diğer sekmede `Hasta` seçin.
-5. Geçerli JWT token girin.
-6. Kamera ve mikrofon izinlerini verin.
+4. Atanmış doktorun ve hastanın kendi JWT token’ını girin. Token’daki `sub` ilgili doktor/hasta GUID’si, `role` ise `Doctor` veya `Patient` olmalıdır.
+5. Kamera ve mikrofon izinlerini verin. Katılımcı rolü istemci seçiminden değil, doğrulanmış JWT claim’lerinden belirlenir.
 
 SignalR hub adresi:
 
@@ -298,7 +320,20 @@ WebRTC medya akışı peer-to-peer çalışır. SignalR yalnızca signaling işl
 - Görüşmeye katılma/ayrılma
 - Chat mesajları
 
-Üretim ortamında farklı ağlar için TURN server kullanılması önerilir.
+### TURN server yapılandırması
+
+Uygulama, TURN sunucusu ayarlandığında istemciye kısa ömürlü kimlik bilgileri sunar. TURN REST API/shared-secret doğrulamasını destekleyen Coturn benzeri bir sunucu kullanın; uzun ömürlü statik TURN kullanıcı adı/parolası kullanılmaz. Değerleri kaynak koda veya `appsettings.json` dosyasına koymayın:
+
+```powershell
+$env:Turn__Urls__0 = "turn:turn.example.com:3478"
+$env:Turn__Urls__1 = "turns:turn.example.com:5349"
+$env:Turn__SharedSecret = "TURN sunucusuyla paylaşılan gizli anahtar"
+$env:Turn__CredentialTtlMinutes = "60"
+```
+
+Coturn tarafında `use-auth-secret` ve aynı shared secret yapılandırılmalıdır. API’deki `GET /api/telecare/ice-servers?consultationId={guid}` endpoint’i yalnızca ilgili görüşmenin doktoru/hastası için ICE sunucularını ve süresi dolan HMAC-SHA1 TURN REST kimlik bilgilerini döndürür. TURN ayarı yapılmadığında örnek istemci STUN ile çalışmayı dener; farklı ağlarda bağlantı garantisi vermez. Üretimde TLS, güvenlik duvarı, TURN kota/izleme ayarları ve düzenli secret rotasyonu ayrıca yapılandırılmalıdır.
+
+Görüşme sırasında chat mesajları veritabanına kaydedilir. Örnek sayfa, gönderen rolü ve zaman aralığı filtreleriyle geçmişi sayfalı olarak yükleyebilir.
 
 ## Blockchain
 
@@ -494,6 +529,8 @@ android.permission.ACTIVITY_RECOGNITION
 - JWT authentication
 - Controller seviyesinde `[Authorize]`
 - SignalR hub seviyesinde `[Authorize]`
+- Doktor/hasta rol politikaları ve JWT kimlik claim’leri
+- Görüşme katılımcısı doğrulaması; chat geçmişi ve mesaj gönderiminde görüşme bazlı erişim kontrolü
 - Tenant bazlı global query filter
 - Hassas sağlık verisini blockchain’e göndermeme
 - Private key’leri User Secrets/environment variable ile saklama

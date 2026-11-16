@@ -10,6 +10,7 @@ using MyProject.Infrastructure;
 using MyProject.Infrastructure.Persistence;
 using MyProject.WebAPI.Hubs;
 using MyProject.WebAPI.Middleware;
+using MyProject.WebAPI.Options;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -91,7 +92,17 @@ builder.Services.AddAuthentication("Bearer")
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Doctor", policy => policy.RequireRole("Doctor"));
+    options.AddPolicy("Patient", policy => policy.RequireRole("Patient"));
+    options.AddPolicy("DoctorOrPatient", policy => policy.RequireRole("Doctor", "Patient"));
+});
+
+builder.Services.AddOptions<TurnServerOptions>()
+    .Bind(builder.Configuration.GetSection(TurnServerOptions.SectionName))
+    .Validate(options => options.IsValid(), "Configure TURN URLs, a shared secret, and a credential TTL between 1 and 1440 minutes.")
+    .ValidateOnStart();
 
 // ── Rate Limiting ─────────────────────────────────────────────────────────
 builder.Services.AddRateLimiter(options =>

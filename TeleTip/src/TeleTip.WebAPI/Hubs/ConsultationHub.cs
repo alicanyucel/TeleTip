@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using MyProject.Infrastructure.Persistence;
 using MyProject.WebAPI.Contracts;
+using MyProject.WebAPI.Security;
 using System.Collections.Concurrent;
 
 namespace MyProject.WebAPI.Hubs
@@ -22,30 +23,36 @@ namespace MyProject.WebAPI.Hubs
             if (request.ConsultationId == Guid.Empty)
                 throw new HubException("Consultation id is required.");
 
+            if (!ConsultationAccess.TryGetIdentity(Context.User, out var identity) ||
+                !await ConsultationAccess.IsParticipantAsync(_db, request.ConsultationId, identity, Context.ConnectionAborted))
+            {
+                throw new HubException("Only the assigned doctor or patient can join this consultation.");
+            }
+
             var room = Rooms.GetOrAdd(request.ConsultationId, _ => new ConcurrentDictionary<string, Participant>());
             var connectionId = Context.ConnectionId;
-            var participant = new Participant(connectionId, request.Role);
+            var participant = new Participant(connectionId, identity.Role, identity.UserId.ToString());
 
             if (!room.TryAdd(connectionId, participant))
                 throw new HubException("Connection is already in this consultation.");
 
-            if (room.Values.Count(p => p.Role == request.Role) > 1)
+            if (room.Values.Count(p => p.Role == identity.Role) > 1)
             {
                 room.TryRemove(connectionId, out _);
-                throw new HubException($"A {request.Role} is already connected to this consultation.");
+                throw new HubException($"A {identity.Role} is already connected to this consultation.");
             }
 
             await Groups.AddToGroupAsync(connectionId, GroupName(request.ConsultationId));
             await Clients.Caller.SendAsync("ConsultationJoined", new
             {
                 request.ConsultationId,
-                Role = request.Role.ToString(),
+                Role = identity.Role.ToString(),
                 ConnectionId = connectionId,
                 ParticipantCount = room.Count
             });
 
             await Clients.OthersInGroup(request.ConsultationId.ToString("N"))
-                .SendAsync("ParticipantJoined", request.Role.ToString(), connectionId);
+                .SendAsync("ParticipantJoined", identity.Role.ToString(), connectionId);
         }
 
         public async Task SendChatMessage(Guid consultationId, string message)
@@ -58,7 +65,7 @@ namespace MyProject.WebAPI.Hubs
             var participant = Rooms[consultationId][Context.ConnectionId];
             var chatMessage = new ChatMessage(
                 consultationId,
-                Context.UserIdentifier ?? Context.ConnectionId,
+                participant.UserId,
                 participant.Role,
                 message.Trim(),
                 DateTime.UtcNow);
@@ -143,6 +150,6 @@ namespace MyProject.WebAPI.Hubs
 
         private static string GroupName(Guid consultationId) => consultationId.ToString("N");
 
-        private sealed record Participant(string ConnectionId, ConsultationParticipantRole Role);
+        private sealed record Participant(string ConnectionId, ConsultationParticipantRole Role, string UserId);
     }
 }

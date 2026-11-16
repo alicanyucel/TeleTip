@@ -21,10 +21,6 @@
 
   <div class="toolbar">
     <input id="consultationId" placeholder="Consultation GUID" />
-    <select id="role">
-      <option value="Doctor">Doktor</option>
-      <option value="Patient">Hasta</option>
-    </select>
     <input id="token" type="password" placeholder="JWT token" />
     <button id="connect">Bağlan</button>
   </div>
@@ -38,13 +34,32 @@
     <input id="message" placeholder="Mesaj yazın" disabled />
     <button id="send" disabled>Gönder</button>
   </div>
+  <div class="history">
+    <select id="senderRoleFilter" aria-label="Gönderen rolü">
+      <option value="">Tüm gönderenler</option>
+      <option value="Doctor">Doktor</option>
+      <option value="Patient">Hasta</option>
+    </select>
+    <input id="sentAfter" type="datetime-local" aria-label="Başlangıç zamanı" />
+    <input id="sentBefore" type="datetime-local" aria-label="Bitiş zamanı" />
+    <button id="loadHistory" disabled>Geçmişi getir</button>
+    <button id="previousPage" disabled>Önceki</button>
+    <span id="pageInfo">Sayfa 1 / 1</span>
+    <button id="nextPage" disabled>Sonraki</button>
+  </div>
   <div id="messages"></div>
 
   <script>
     const status = document.getElementById('status');
     const consultationInput = document.getElementById('consultationId');
-    const roleInput = document.getElementById('role');
     const tokenInput = document.getElementById('token');
+    const senderRoleFilter = document.getElementById('senderRoleFilter');
+    const sentAfterInput = document.getElementById('sentAfter');
+    const sentBeforeInput = document.getElementById('sentBefore');
+    const loadHistoryButton = document.getElementById('loadHistory');
+    const previousPageButton = document.getElementById('previousPage');
+    const nextPageButton = document.getElementById('nextPage');
+    const pageInfo = document.getElementById('pageInfo');
     const messageInput = document.getElementById('message');
     const sendButton = document.getElementById('send');
     const localVideo = document.getElementById('localVideo');
@@ -59,6 +74,10 @@
       .build();
 
     let consultationId;
+    let participantRole;
+    let historyPage = 1;
+    let historyTotalPages = 1;
+    let iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
     let peerConnection;
     let localStream;
 
@@ -70,10 +89,37 @@
       messages.scrollTop = messages.scrollHeight;
     }
 
-    async function createPeerConnection() {
-      peerConnection ??= new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    async function loadHistory() {
+      const params = new URLSearchParams({
+        consultationId,
+        page: String(historyPage),
+        pageSize: '20'
       });
+      if (senderRoleFilter.value) params.set('senderRole', senderRoleFilter.value);
+      if (sentAfterInput.value) params.set('sentAfter', new Date(sentAfterInput.value).toISOString());
+      if (sentBeforeInput.value) params.set('sentBefore', new Date(sentBeforeInput.value).toISOString());
+
+      const response = await fetch(`${apiBase}/api/telecare/chat-messages?${params}`, {
+        headers: { Authorization: `Bearer ${tokenInput.value}` }
+      });
+      if (!response.ok) throw new Error(await response.text());
+
+      const result = await response.json();
+      messages.replaceChildren();
+      result.items.forEach(item => {
+        const role = typeof item.senderRole === 'number'
+          ? (item.senderRole === 0 ? 'Doctor' : 'Patient')
+          : item.senderRole;
+        addMessage(`${role}: ${item.message} (${new Date(item.sentAt).toLocaleString()})`);
+      });
+      historyTotalPages = Math.max(1, Math.ceil(result.totalCount / result.pageSize));
+      pageInfo.textContent = `Sayfa ${result.page} / ${historyTotalPages}`;
+      previousPageButton.disabled = result.page <= 1;
+      nextPageButton.disabled = result.page >= historyTotalPages;
+    }
+
+    async function createPeerConnection() {
+      peerConnection ??= new RTCPeerConnection({ iceServers });
 
       peerConnection.onicecandidate = event => {
         if (event.candidate) {
@@ -101,16 +147,19 @@
     }
 
     connection.on('ConsultationJoined', async data => {
-      setStatus(`${data.Role} olarak bağlandınız. Katılımcı: ${data.ParticipantCount}`);
+      participantRole = data.role;
+      setStatus(`${data.role} olarak bağlandınız. Katılımcı: ${data.participantCount}`);
       messageInput.disabled = false;
       sendButton.disabled = false;
+      loadHistoryButton.disabled = false;
+      await loadHistory();
       await createPeerConnection();
-      if (data.Role === 'Doctor' && data.ParticipantCount > 1) await createOffer();
+      if (data.role === 'Doctor' && data.participantCount > 1) await createOffer();
     });
 
     connection.on('ParticipantJoined', async role => {
       setStatus(`${role} görüşmeye katıldı.`);
-      if (role === 'Patient' && roleInput.value === 'Doctor') await createOffer();
+      if (role === 'Patient' && participantRole === 'Doctor') await createOffer();
     });
 
     connection.on('ParticipantLeft', role => setStatus(`${role} görüşmeden ayrıldı.`));
@@ -146,14 +195,20 @@
         setStatus('Modern bir tarayıcı gereklidir.');
         return;
       }
-      consultationId = consultationInput.value || crypto.randomUUID();
-      consultationInput.value = consultationId;
+      consultationId = consultationInput.value;
+      if (!consultationId || !tokenInput.value) {
+        setStatus('Görüşme kimliği ve JWT token gereklidir.');
+        return;
+      }
       try {
-        await connection.start();
-        await connection.invoke('JoinConsultation', {
-          consultationId,
-          role: roleInput.value
+        const iceResponse = await fetch(`${apiBase}/api/telecare/ice-servers?consultationId=${encodeURIComponent(consultationId)}`, {
+          headers: { Authorization: `Bearer ${tokenInput.value}` }
         });
+        if (!iceResponse.ok) throw new Error(await iceResponse.text());
+        iceServers = (await iceResponse.json()).iceServers;
+
+        await connection.start();
+        await connection.invoke('JoinConsultation', { consultationId });
       } catch (error) {
         setStatus(`Bağlantı hatası: ${error.message}`);
       }
@@ -168,6 +223,26 @@
 
     messageInput.onkeydown = event => {
       if (event.key === 'Enter') sendButton.click();
+    };
+
+    loadHistoryButton.onclick = async () => {
+      historyPage = 1;
+      try { await loadHistory(); }
+      catch (error) { setStatus(`Geçmiş yüklenemedi: ${error.message}`); }
+    };
+
+    previousPageButton.onclick = async () => {
+      if (historyPage <= 1) return;
+      historyPage--;
+      try { await loadHistory(); }
+      catch (error) { setStatus(`Geçmiş yüklenemedi: ${error.message}`); }
+    };
+
+    nextPageButton.onclick = async () => {
+      if (historyPage >= historyTotalPages) return;
+      historyPage++;
+      try { await loadHistory(); }
+      catch (error) { setStatus(`Geçmiş yüklenemedi: ${error.message}`); }
     };
   </script>
 </body>
