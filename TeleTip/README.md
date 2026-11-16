@@ -221,6 +221,16 @@ Doctor/Patient yetkilendirmesinde JWT aşağıdaki claim’leri içermelidir:
 
 `role` değeri `Doctor` veya `Patient` olmalı; `sub` ilgili doktor/hasta kaydının GUID kimliğiyle eşleşmelidir. JWT üretimi uygulama dışında yapılıyorsa bu claim’leri token’a ekleyin. Görüşme ve chat erişimi ayrıca kullanıcının ilgili danışmadaki doktor veya hasta olarak atanmış olmasını gerektirir; istemciden gönderilen rol bilgisi kullanılmaz.
 
+| İşlem | Doktor | Hasta |
+|---|---|---|
+| Hasta listesini görüntüleme | Yalnızca atanmış hastalar | İzin verilmez |
+| Hasta detayını görüntüleme | Atanmış hastalar | Yalnızca kendi kaydı |
+| Görüşme ve chat geçmişi | Yalnızca katılımcısı olduğu görüşmeler | Yalnızca katılımcısı olduğu görüşmeler |
+| Reçete/rapor oluşturma | Kendi kimliğiyle, atanmış hasta için | İzin verilmez |
+| Cihaz ve ölçüm işlemleri | Atanmış hasta için | Yalnızca kendi kaydı için |
+
+Diğer hasta sağlık verileri de kullanıcı kimliğine ve hasta-doktor atamasına göre filtrelenir. İzin verilmeyen veya kullanıcıya atanmamış görüşme/kayıtlar için ilgili endpoint kaydı döndürmez.
+
 ## API Kullanımı
 
 Ana API adresi:
@@ -278,6 +288,23 @@ GET /api/telecare/chat-messages?consultationId={guid}&senderRole=Doctor&sentAfte
 
 Chat mesajı oluştururken yalnızca `consultationId` ve `message` gönderilir; gönderen kimliği ve rolü JWT’den alınır.
 
+Mesaj gönderme isteği:
+
+```http
+POST /api/telecare/chat-messages
+Content-Type: application/json
+Authorization: Bearer <JWT>
+```
+
+```json
+{
+  "consultationId": "00000000-0000-0000-0000-000000000001",
+  "message": "Merhaba, ölçüm sonuçlarımı paylaşmak istiyorum."
+}
+```
+
+Geçmiş sorgusu `items`, `page`, `pageSize` ve `totalCount` alanları olan bir sayfa döndürür. Tarih filtreleri UTC ISO 8601 biçiminde gönderilmelidir; aralık başlangıç ve bitiş değerleri dahil edilir.
+
 Örnek hasta oluşturma isteği:
 
 ```json
@@ -331,7 +358,7 @@ $env:Turn__SharedSecret = "TURN sunucusuyla paylaşılan gizli anahtar"
 $env:Turn__CredentialTtlMinutes = "60"
 ```
 
-Coturn tarafında `use-auth-secret` ve aynı shared secret yapılandırılmalıdır. API’deki `GET /api/telecare/ice-servers?consultationId={guid}` endpoint’i yalnızca ilgili görüşmenin doktoru/hastası için ICE sunucularını ve süresi dolan HMAC-SHA1 TURN REST kimlik bilgilerini döndürür. TURN ayarı yapılmadığında örnek istemci STUN ile çalışmayı dener; farklı ağlarda bağlantı garantisi vermez. Üretimde TLS, güvenlik duvarı, TURN kota/izleme ayarları ve düzenli secret rotasyonu ayrıca yapılandırılmalıdır.
+Coturn tarafında `use-auth-secret` ve aynı shared secret yapılandırılmalıdır. API’deki `GET /api/telecare/ice-servers?consultationId={guid}` endpoint’i yalnızca ilgili görüşmenin doktoru/hastası için ICE sunucularını ve süresi dolan HMAC-SHA1 TURN REST kimlik bilgilerini döndürür. Kullanıcı adı, son kullanma Unix zamanını ve kullanıcı GUID’sini içerir; TURN sunucusu Coturn’un REST secret doğrulama yöntemiyle aynı secret’ı kullanmalıdır. `Turn:Urls` boş bırakılırsa TURN sunucusu yanıt listesine eklenmez. TURN ayarı yapılmadığında örnek istemci STUN ile çalışmayı dener; farklı ağlarda bağlantı garantisi vermez. Üretimde TLS, güvenlik duvarı, TURN kota/izleme ayarları ve düzenli secret rotasyonu ayrıca yapılandırılmalıdır. Secret’ı terminal geçmişine yazmayın; deployment secret store veya güvenli ortam değişkeni kullanın.
 
 Görüşme sırasında chat mesajları veritabanına kaydedilir. Örnek sayfa, gönderen rolü ve zaman aralığı filtreleriyle geçmişi sayfalı olarak yükleyebilir.
 
