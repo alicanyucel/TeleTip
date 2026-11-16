@@ -1,108 +1,107 @@
-version: '3.9'
-
 services:
   api:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: cleanarch-api
+    container_name: teletip-api
     ports:
       - "5000:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__SqlServer=Data Source=sqlserver;Initial Catalog=CleanArchDb;User ID=sa;Password=YourStrong@Passw0rd;Encrypt=True;TrustServerCertificate=True
-      - ConnectionStrings__Redis=redis:6379
-      - ConnectionStrings__RabbitMQ=amqp://guest:guest@rabbitmq:5672
-      - Mqtt__Host=mosquitto
-      - Mqtt__Port=1883
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__SqlServer: "Server=sqlserver;Database=TeleTip;User Id=sa;Password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD};Encrypt=True;TrustServerCertificate=True"
+      ConnectionStrings__Redis: redis:6379
+      ConnectionStrings__RabbitMQ: "rabbitmq://teletip:${RABBITMQ_DEFAULT_PASS:?Set RABBITMQ_DEFAULT_PASS}@rabbitmq:5672"
+      Mqtt__Host: mosquitto
+      Mqtt__Port: "1883"
+      Jwt__SecretKey: ${TELETIP_JWT_SECRET:?Set TELETIP_JWT_SECRET}
     depends_on:
       - sqlserver
       - redis
       - rabbitmq
       - mosquitto
     networks:
-      - cleanarch-net
+      - teletip-net
 
   mosquitto:
     image: eclipse-mosquitto:2
     container_name: teletip-mosquitto
     ports:
       - "1883:1883"
-      - "9001:9001"
     volumes:
       - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - mosquitto_data:/mosquitto/data
       - mosquitto_log:/mosquitto/log
     networks:
-      - cleanarch-net
+      - teletip-net
 
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: cleanarch-sqlserver
+    container_name: teletip-sqlserver
     environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=YourStrong@Passw0rd
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD}
     ports:
       - "1433:1433"
     volumes:
       - sqlserver_data:/var/opt/mssql
     networks:
-      - cleanarch-net
+      - teletip-net
 
   redis:
     image: redis:7-alpine
-    container_name: cleanarch-redis
+    container_name: teletip-redis
     ports:
       - "6379:6379"
     networks:
-      - cleanarch-net
+      - teletip-net
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
-    container_name: cleanarch-rabbitmq
+    container_name: teletip-rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
     environment:
-      - RABBITMQ_DEFAULT_USER=guest
-      - RABBITMQ_DEFAULT_PASS=guest
+      RABBITMQ_DEFAULT_USER: teletip
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?Set RABBITMQ_DEFAULT_PASS}
     networks:
-      - cleanarch-net
+      - teletip-net
 
   prometheus:
     image: prom/prometheus:latest
-    container_name: cleanarch-prometheus
+    container_name: teletip-prometheus
     ports:
       - "9090:9090"
     volumes:
-      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     networks:
-      - cleanarch-net
+      - teletip-net
 
   grafana:
     image: grafana/grafana:latest
-    container_name: cleanarch-grafana
+    container_name: teletip-grafana
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD}
     volumes:
       - grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
     networks:
-      - cleanarch-net
+      - teletip-net
 
   seq:
     image: datalust/seq:latest
-    container_name: cleanarch-seq
+    container_name: teletip-seq
     ports:
       - "5341:5341"
       - "8080:80"
     environment:
-      - ACCEPT_EULA=Y
+      ACCEPT_EULA: "Y"
     networks:
-      - cleanarch-net
+      - teletip-net
 
 volumes:
   sqlserver_data:
@@ -111,5 +110,5 @@ volumes:
   mosquitto_log:
 
 networks:
-  cleanarch-net:
+  teletip-net:
     driver: bridge

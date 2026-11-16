@@ -1,0 +1,51 @@
+services:
+  api:
+    platform: linux/arm64
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: teletip-api
+    ports:
+      - "5000:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__SqlServer: "${TELETIP_SQLSERVER_CONNECTION:?Set TELETIP_SQLSERVER_CONNECTION in .env}"
+      ConnectionStrings__Redis: redis:6379
+      ConnectionStrings__RabbitMQ: "rabbitmq://teletip:${RABBITMQ_DEFAULT_PASS:?Set RABBITMQ_DEFAULT_PASS}@rabbitmq:5672"
+      Mqtt__Host: mosquitto
+      Mqtt__Port: "1883"
+      Jwt__SecretKey: "${TELETIP_JWT_SECRET:?Set TELETIP_JWT_SECRET in .env}"
+    depends_on:
+      - redis
+      - rabbitmq
+      - mosquitto
+    restart: unless-stopped
+
+  mosquitto:
+    platform: linux/arm64
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    restart: unless-stopped
+
+  redis:
+    platform: linux/arm64
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  rabbitmq:
+    platform: linux/arm64
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: teletip
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?Set RABBITMQ_DEFAULT_PASS}
+    restart: unless-stopped
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:

@@ -12,6 +12,7 @@ Projenin amacı; hastaların sağlık verilerini güvenli şekilde toplamak, dok
 - [Teknolojiler](#teknolojiler)
 - [Mimari](#mimari)
 - [Gereksinimler](#gereksinimler)
+- [Linux ve Gömülü Linux Dağıtımı](#linux-ve-gömülü-linux-dağıtımı)
 - [Kurulum](#kurulum)
 - [Veritabanı ve Code First](#veritabanı-ve-code-first)
 - [Uygulamayı Çalıştırma](#uygulamayı-çalıştırma)
@@ -67,6 +68,34 @@ Projenin amacı; hastaların sağlık verilerini güvenli şekilde toplamak, dok
 - Wear OS uygulaması için Android Studio, Android SDK ve JDK 17
 - Blockchain için Node.js ve npm
 - Kamera ve mikrofon erişimi için HTTPS veya localhost
+
+## Linux ve Gömülü Linux Dağıtımı
+
+Web API, .NET 10 Linux container'ı olarak `linux/amd64` ve `linux/arm64` üzerinde çalışacak şekilde paketlenmiştir. ARM64, 64-bit Raspberry Pi OS ve benzeri gömülü Linux cihazları için uygundur. Cihazın Docker Engine ve Docker Compose eklentisini çalıştırabilmesi ve yeterli belleğe/depolama alanına sahip olması gerekir.
+
+> SQL Server Linux container'ı ARM64 üzerinde desteklenmediğinden, gömülü cihaz dağıtımında SQL Server'ı x64 Linux sunucuda veya başka bir erişilebilir SQL Server ortamında çalıştırın. Linux masaüstü MAUI uygulama hedefi bu projede bulunmuyor; cihazlar MQTT üzerinden TeleTip API'ye veri gönderebilir.
+
+Linux ARM64 cihazında `TeleTip` klasöründen `.env` dosyası oluşturun. Aşağıdaki değerleri gerçek ortamınıza göre değiştirin:
+
+```dotenv
+TELETIP_SQLSERVER_CONNECTION="Server=db.example.local;Database=TeleTip;User Id=teletip;Password=replace-with-a-secret;Encrypt=True;TrustServerCertificate=True"
+RABBITMQ_DEFAULT_PASS="replace-with-a-secret"
+TELETIP_JWT_SECRET="replace-with-at-least-64-random-characters"
+```
+
+Embedded compose dosyası API, Redis, RabbitMQ ve MQTT broker'ı cihazda başlatır; API'nin veritabanı bağlantısını `.env` dosyasından alır:
+
+```bash
+docker compose -f docker-compose.embedded.yml up --build -d
+```
+
+API `http://<cihaz-adresi>:5000` adresinde, MQTT broker `1883` portunda dinler. Mosquitto'nun örnek yapılandırması kimlik doğrulamasızdır; sağlık verileri içeren production dağıtımında broker erişimini TLS, kimlik doğrulama ve topic yetkilendirmesiyle koruyun.
+
+Linux x64 veya ARM64 için çok mimarili imaj oluşturup registry'ye yayımlamak için Buildx kullanın:
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 -t <registry>/teletip-api:latest --push .
+```
 
 ## Kurulum
 
