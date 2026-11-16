@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
-using MyProject.Domain.Entities;
 using MyProject.Infrastructure.Persistence;
 using MyProject.WebAPI.Contracts;
 
@@ -49,4 +48,17 @@ public static class ConsultationAccess
                     ? consultation.DoctorId == identity.UserId
                     : consultation.PatientId == identity.UserId),
                 cancellationToken);
+
+    public static Task<bool> CanAccessPatientAsync(
+        AppDbContext db,
+        Guid patientId,
+        ConsultationIdentity identity,
+        CancellationToken cancellationToken = default)
+        => identity.Role == ConsultationParticipantRole.Patient
+            ? Task.FromResult(patientId == identity.UserId)
+            : db.TelemedicineConsultations
+                .AsNoTracking()
+                .AnyAsync(consultation => consultation.DoctorId == identity.UserId &&
+                    consultation.PatientId == patientId,
+                    cancellationToken);
 }

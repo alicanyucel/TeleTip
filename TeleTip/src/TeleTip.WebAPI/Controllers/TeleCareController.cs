@@ -11,22 +11,33 @@ using MyProject.WebAPI.Security;
 namespace MyProject.WebAPI.Controllers
 {
     [ApiController]
-    [Authorize]
+    [Authorize(Policy = "DoctorOrPatient")]
     [Route("api/telecare")]
     public sealed class TeleCareController(ISender sender, AppDbContext db) : ControllerBase
     {
         [HttpGet("patients")]
         [Authorize(Policy = "Doctor")]
-        public Task<IActionResult> GetPatients(CancellationToken ct) => SendList(new GetPatientsQuery(), ct);
+        public async Task<IActionResult> GetPatients(CancellationToken ct)
+        {
+            if (!ConsultationAccess.TryGetIdentity(User, out var identity))
+                return Forbid();
+
+            var patients = await db.Patients
+                .AsNoTracking()
+                .Where(patient => db.TelemedicineConsultations.Any(consultation =>
+                    consultation.DoctorId == identity.UserId && consultation.PatientId == patient.Id))
+                .ToListAsync(ct);
+
+            return Ok(patients);
+        }
 
         [HttpGet("patients/{id:guid}")]
-        [Authorize(Policy = "DoctorOrPatient")]
         public async Task<IActionResult> GetPatient(Guid id, CancellationToken ct)
         {
             if (!ConsultationAccess.TryGetIdentity(User, out var identity) ||
-                (identity.Role == MyProject.WebAPI.Contracts.ConsultationParticipantRole.Patient && identity.UserId != id))
+                !await ConsultationAccess.CanAccessPatientAsync(db, id, identity, ct))
             {
-                return Forbid();
+                return NotFound();
             }
 
             return await SendOne(new GetPatientByIdQuery(id), ct);
@@ -93,46 +104,209 @@ namespace MyProject.WebAPI.Controllers
         }
 
         [HttpGet("devices")]
-        public Task<IActionResult> GetDevices(CancellationToken ct) => SendList(new GetIoTDevicesQuery(), ct);
+        public async Task<IActionResult> GetDevices(CancellationToken ct)
+        {
+            if (!ConsultationAccess.TryGetIdentity(User, out var identity))
+                return Forbid();
+
+            var devices = await db.IoTDevices.AsNoTracking()
+                .Where(device => identity.Role == MyProject.WebAPI.Contracts.ConsultationParticipantRole.Doctor
+                    ? db.TelemedicineConsultations.Any(consultation => consultation.DoctorId == identity.UserId && consultation.PatientId == device.PatientId)
+                    : device.PatientId == identity.UserId)
+                .ToListAsync(ct);
+            return Ok(devices);
+        }
+
         [HttpGet("devices/{id:guid}")]
-        public Task<IActionResult> GetDevice(Guid id, CancellationToken ct) => SendOne(new GetIoTDeviceByIdQuery(id), ct);
+        public async Task<IActionResult> GetDevice(Guid id, CancellationToken ct)
+        {
+            var device = await db.IoTDevices.AsNoTracking().FirstOrDefaultAsync(item => item.Id == id, ct);
+            if (device is null || !ConsultationAccess.TryGetIdentity(User, out var identity) ||
+                !await ConsultationAccess.CanAccessPatientAsync(db, device.PatientId, identity, ct))
+                return NotFound();
+            return Ok(device);
+        }
+
         [HttpPost("devices")]
-        public Task<IActionResult> CreateDevice(CreateIoTDeviceCommand command, CancellationToken ct) => Create(command, nameof(GetDevice), ct);
+        public async Task<IActionResult> CreateDevice(CreateIoTDeviceCommand command, CancellationToken ct)
+        {
+            if (!ConsultationAccess.TryGetIdentity(User, out var identity) ||
+                !await ConsultationAccess.CanAccessPatientAsync(db, command.PatientId, identity, ct))
+                return NotFound();
+            return await Create(command, nameof(GetDevice), ct);
+        }
 
         [HttpGet("measurements")]
-        public Task<IActionResult> GetMeasurements(CancellationToken ct) => SendList(new GetHealthMeasurementsQuery(), ct);
+        public async Task<IActionResult> GetMeasurements(CancellationToken ct)
+        {
+            if (!ConsultationAccess.TryGetIdentity(User, out var identity))
+                return Forbid();
+
+            var measurements = await db.HealthMeasurements.AsNoTracking()
+                .Where(measurement => identity.Role == MyProject.WebAPI.Contracts.ConsultationParticipantRole.Doctor
+                    ? db.TelemedicineConsultations.Any(consultation => consultation.DoctorId == identity.UserId && consultation.PatientId == measurement.PatientId)
+                    : measurement.PatientId == identity.UserId)
+                .ToListAsync(ct);
+            return Ok(measurements);
+        }
+
         [HttpGet("measurements/{id:guid}")]
-        public Task<IActionResult> GetMeasurement(Guid id, CancellationToken ct) => SendOne(new GetHealthMeasurementByIdQuery(id), ct);
+        public async Task<IActionResult> GetMeasurement(Guid id, CancellationToken ct)
+        {
+            var measurement = await db.HealthMeasurements.AsNoTracking().FirstOrDefaultAsync(item => item.Id == id, ct);
+            if (measurement is null || !ConsultationAccess.TryGetIdentity(User, out var identity) ||
+                !await ConsultationAccess.CanAccessPatientAsync(db, measurement.PatientId, identity, ct))
+                return NotFound();
+            return Ok(measurement);
+        }
+
         [HttpPost("measurements")]
-        public Task<IActionResult> CreateMeasurement(CreateHealthMeasurementCommand command, CancellationToken ct) => Create(command, nameof(GetMeasurement), ct);
+        public async Task<IActionResult> CreateMeasurement(CreateHealthMeasurementCommand command, CancellationToken ct)
+        {
+            if (!ConsultationAccess.TryGetIdentity(User, out var identity) ||
+                !await ConsultationAccess.CanAccessPatientAsync(db, command.PatientId, identity, ct))
+                return NotFound();
+            return await Create(command, nameof(GetMeasurement), ct);
+        }
 
         [HttpGet("prescriptions")]
-        public Task<IActionResult> GetPrescriptions(CancellationToken ct) => SendList(new GetPrescriptionsQuery(), ct);
+        public async Task<IActionResult> GetPrescriptions(CancellationToken ct)
+        {
+            if (!ConsultationAccess.TryGetIdentity(User, out var identity))
+                return Forbid();
+
+            var prescriptions = await db.Prescriptions.AsNoTracking()
+                .Where(item => identity.Role == MyProject.WebAPI.Contracts.ConsultationParticipantRole.Doctor
+                    ? item.DoctorId == identity.UserId && db.TelemedicineConsultations.Any(consultation => consultation.DoctorId == identity.UserId && consultation.PatientId == item.PatientId)
+                    : item.PatientId == identity.UserId)
+                .ToListAsync(ct);
+            return Ok(prescriptions);
+        }
+
         [HttpGet("prescriptions/{id:guid}")]
-        public Task<IActionResult> GetPrescription(Guid id, CancellationToken ct) => SendOne(new GetPrescriptionByIdQuery(id), ct);
+        public async Task<IActionResult> GetPrescription(Guid id, CancellationToken ct)
+        {
+            var item = await db.Prescriptions.AsNoTracking().FirstOrDefaultAsync(record => record.Id == id, ct);
+            if (item is null || !ConsultationAccess.TryGetIdentity(User, out var identity) ||
+                !await ConsultationAccess.CanAccessPatientAsync(db, item.PatientId, identity, ct) ||
+                (identity.Role == MyProject.WebAPI.Contracts.ConsultationParticipantRole.Doctor && item.DoctorId != identity.UserId))
+                return NotFound();
+            return Ok(item);
+        }
+
         [HttpPost("prescriptions")]
-        public Task<IActionResult> CreatePrescription(CreatePrescriptionCommand command, CancellationToken ct) => Create(command, nameof(GetPrescription), ct);
+        [Authorize(Policy = "Doctor")]
+        public async Task<IActionResult> CreatePrescription(CreatePrescriptionCommand command, CancellationToken ct)
+        {
+            if (!ConsultationAccess.TryGetIdentity(User, out var identity) || command.DoctorId != identity.UserId ||
+                !await ConsultationAccess.CanAccessPatientAsync(db, command.PatientId, identity, ct))
+                return NotFound();
+            return await Create(command, nameof(GetPrescription), ct);
+        }
 
         [HttpGet("reports")]
-        public Task<IActionResult> GetReports(CancellationToken ct) => SendList(new GetMedicalReportsQuery(), ct);
+        public async Task<IActionResult> GetReports(CancellationToken ct)
+        {
+            if (!ConsultationAccess.TryGetIdentity(User, out var identity))
+                return Forbid();
+
+            var reports = await db.MedicalReports.AsNoTracking()
+                .Where(item => identity.Role == MyProject.WebAPI.Contracts.ConsultationParticipantRole.Doctor
+                    ? item.DoctorId == identity.UserId && db.TelemedicineConsultations.Any(consultation => consultation.DoctorId == identity.UserId && consultation.PatientId == item.PatientId)
+                    : item.PatientId == identity.UserId)
+                .ToListAsync(ct);
+            return Ok(reports);
+        }
+
         [HttpGet("reports/{id:guid}")]
-        public Task<IActionResult> GetReport(Guid id, CancellationToken ct) => SendOne(new GetMedicalReportByIdQuery(id), ct);
+        public async Task<IActionResult> GetReport(Guid id, CancellationToken ct)
+        {
+            var item = await db.MedicalReports.AsNoTracking().FirstOrDefaultAsync(record => record.Id == id, ct);
+            if (item is null || !ConsultationAccess.TryGetIdentity(User, out var identity) ||
+                !await ConsultationAccess.CanAccessPatientAsync(db, item.PatientId, identity, ct) ||
+                (identity.Role == MyProject.WebAPI.Contracts.ConsultationParticipantRole.Doctor && item.DoctorId != identity.UserId))
+                return NotFound();
+            return Ok(item);
+        }
+
         [HttpPost("reports")]
-        public Task<IActionResult> CreateReport(CreateMedicalReportCommand command, CancellationToken ct) => Create(command, nameof(GetReport), ct);
+        [Authorize(Policy = "Doctor")]
+        public async Task<IActionResult> CreateReport(CreateMedicalReportCommand command, CancellationToken ct)
+        {
+            if (!ConsultationAccess.TryGetIdentity(User, out var identity) || command.DoctorId != identity.UserId ||
+                !await ConsultationAccess.CanAccessPatientAsync(db, command.PatientId, identity, ct))
+                return NotFound();
+            return await Create(command, nameof(GetReport), ct);
+        }
 
         [HttpGet("analyses")]
-        public Task<IActionResult> GetAnalyses(CancellationToken ct) => SendList(new GetAiAnalysesQuery(), ct);
+        public async Task<IActionResult> GetAnalyses(CancellationToken ct)
+        {
+            if (!ConsultationAccess.TryGetIdentity(User, out var identity))
+                return Forbid();
+
+            var analyses = await db.AiAnalyses.AsNoTracking()
+                .Where(item => identity.Role == MyProject.WebAPI.Contracts.ConsultationParticipantRole.Doctor
+                    ? db.TelemedicineConsultations.Any(consultation => consultation.DoctorId == identity.UserId && consultation.PatientId == item.PatientId)
+                    : item.PatientId == identity.UserId)
+                .ToListAsync(ct);
+            return Ok(analyses);
+        }
+
         [HttpGet("analyses/{id:guid}")]
-        public Task<IActionResult> GetAnalysis(Guid id, CancellationToken ct) => SendOne(new GetAiAnalysisByIdQuery(id), ct);
+        public async Task<IActionResult> GetAnalysis(Guid id, CancellationToken ct)
+        {
+            var item = await db.AiAnalyses.AsNoTracking().FirstOrDefaultAsync(record => record.Id == id, ct);
+            if (item is null || !ConsultationAccess.TryGetIdentity(User, out var identity) ||
+                !await ConsultationAccess.CanAccessPatientAsync(db, item.PatientId, identity, ct))
+                return NotFound();
+            return Ok(item);
+        }
+
         [HttpPost("analyses")]
-        public Task<IActionResult> CreateAnalysis(CreateAiAnalysisCommand command, CancellationToken ct) => Create(command, nameof(GetAnalysis), ct);
+        [Authorize(Policy = "Doctor")]
+        public async Task<IActionResult> CreateAnalysis(CreateAiAnalysisCommand command, CancellationToken ct)
+        {
+            if (!ConsultationAccess.TryGetIdentity(User, out var identity) ||
+                !await ConsultationAccess.CanAccessPatientAsync(db, command.PatientId, identity, ct))
+                return NotFound();
+            return await Create(command, nameof(GetAnalysis), ct);
+        }
 
         [HttpGet("notifications")]
-        public Task<IActionResult> GetNotifications(CancellationToken ct) => SendList(new GetNotificationsQuery(), ct);
+        public async Task<IActionResult> GetNotifications(CancellationToken ct)
+        {
+            if (!ConsultationAccess.TryGetIdentity(User, out var identity))
+                return Forbid();
+
+            var notifications = await db.Notifications.AsNoTracking()
+                .Where(item => identity.Role == MyProject.WebAPI.Contracts.ConsultationParticipantRole.Doctor
+                    ? item.DoctorId == identity.UserId && db.TelemedicineConsultations.Any(consultation => consultation.DoctorId == identity.UserId && consultation.PatientId == item.PatientId)
+                    : item.PatientId == identity.UserId)
+                .ToListAsync(ct);
+            return Ok(notifications);
+        }
+
         [HttpGet("notifications/{id:guid}")]
-        public Task<IActionResult> GetNotification(Guid id, CancellationToken ct) => SendOne(new GetNotificationByIdQuery(id), ct);
+        public async Task<IActionResult> GetNotification(Guid id, CancellationToken ct)
+        {
+            var item = await db.Notifications.AsNoTracking().FirstOrDefaultAsync(record => record.Id == id, ct);
+            if (item is null || !ConsultationAccess.TryGetIdentity(User, out var identity) ||
+                !await ConsultationAccess.CanAccessPatientAsync(db, item.PatientId, identity, ct) ||
+                (identity.Role == MyProject.WebAPI.Contracts.ConsultationParticipantRole.Doctor && item.DoctorId != identity.UserId))
+                return NotFound();
+            return Ok(item);
+        }
+
         [HttpPost("notifications")]
-        public Task<IActionResult> CreateNotification(CreateNotificationCommand command, CancellationToken ct) => Create(command, nameof(GetNotification), ct);
+        [Authorize(Policy = "Doctor")]
+        public async Task<IActionResult> CreateNotification(CreateNotificationCommand command, CancellationToken ct)
+        {
+            if (!ConsultationAccess.TryGetIdentity(User, out var identity) || command.DoctorId != identity.UserId ||
+                !await ConsultationAccess.CanAccessPatientAsync(db, command.PatientId, identity, ct))
+                return NotFound();
+            return await Create(command, nameof(GetNotification), ct);
+        }
 
         [HttpGet("chat-messages")]
         [Authorize(Policy = "DoctorOrPatient")]

@@ -191,10 +191,6 @@
     });
 
     document.getElementById('connect').onclick = async () => {
-      if (!crypto.randomUUID) {
-        setStatus('Modern bir tarayıcı gereklidir.');
-        return;
-      }
       consultationId = consultationInput.value;
       if (!consultationId || !tokenInput.value) {
         setStatus('Görüşme kimliği ve JWT token gereklidir.');

@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\TeleTip.Application\TeleTip.Application.csproj" />
     <ProjectReference Include="..\..\src\TeleTip.Domain\TeleTip.Domain.csproj" />
+    <ProjectReference Include="..\..\src\TeleTip.WebAPI\TeleTip.WebAPI.csproj" />
   </ItemGroup>
 
 </Project>
