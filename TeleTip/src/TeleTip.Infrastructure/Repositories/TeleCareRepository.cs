@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using MyProject.Application.Abstractions.Persistence;
 using MyProject.Domain.Abstractions;
+using MyProject.Domain.Entities;
 using MyProject.Infrastructure.Persistence;
 
 namespace MyProject.Infrastructure.Repositories
@@ -20,6 +21,18 @@ namespace MyProject.Infrastructure.Repositories
         public async Task<IReadOnlyList<T>> GetAllAsync<T>(CancellationToken cancellationToken = default)
             where T : Entity
             => await context.Set<T>().AsNoTracking().ToListAsync(cancellationToken);
+
+        public async Task<IReadOnlyList<HealthMeasurement>> GetRecentHealthMeasurementsAsync(
+            Guid patientId,
+            int limit,
+            CancellationToken cancellationToken = default)
+            => await context.HealthMeasurements
+                .AsNoTracking()
+                .Where(measurement => measurement.PatientId == patientId)
+                .OrderByDescending(measurement => measurement.MeasuredAt)
+                .ThenByDescending(measurement => measurement.Id)
+                .Take(limit)
+                .ToListAsync(cancellationToken);
 
         public Task SaveChangesAsync(CancellationToken cancellationToken = default)
             => context.SaveChangesAsync(cancellationToken);

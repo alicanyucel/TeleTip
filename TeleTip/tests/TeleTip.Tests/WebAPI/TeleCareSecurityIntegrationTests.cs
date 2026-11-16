@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
 using MediatR;
@@ -59,6 +60,41 @@ public sealed class TeleCareSecurityIntegrationTests
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await response.Content.ReadAsStringAsync()).Should().NotContain("Other");
+    }
+
+    [Fact]
+    public async Task Patient_CannotGenerateAiAnalysis()
+    {
+        await using var application = await SecurityTestApplication.StartAsync();
+        var patient = Patient.Create("Test", "Patient", new DateOnly(1990, 1, 1)).Value;
+        await application.SeedAsync(patient);
+        application.AuthenticateAs("Patient", patient.Id);
+
+        var response = await application.Client.PostAsJsonAsync("/api/telecare/analyses/generate", new
+        {
+            patientId = patient.Id,
+            type = "General"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Doctor_CannotGenerateAiAnalysisForUnassignedPatient()
+    {
+        await using var application = await SecurityTestApplication.StartAsync();
+        var doctor = Doctor.Create("Test", "Doctor", "General", "LIC-1").Value;
+        var patient = Patient.Create("Test", "Patient", new DateOnly(1990, 1, 1)).Value;
+        await application.SeedAsync(doctor, patient);
+        application.AuthenticateAs("Doctor", doctor.Id);
+
+        var response = await application.Client.PostAsJsonAsync("/api/telecare/analyses/generate", new
+        {
+            patientId = patient.Id,
+            type = "General"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]

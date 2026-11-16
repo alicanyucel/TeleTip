@@ -273,6 +273,38 @@ namespace MyProject.WebAPI.Controllers
             return await Create(command, nameof(GetAnalysis), ct);
         }
 
+        [HttpPost("analyses/generate")]
+        [Authorize(Policy = "Doctor")]
+        public async Task<IActionResult> GenerateAnalysis(GenerateAiAnalysisRequest request, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(request.Type) ||
+                !Enum.TryParse<AnalysisType>(request.Type, true, out var analysisType) ||
+                !Enum.IsDefined(analysisType))
+                return BadRequest("Analysis type is invalid.");
+
+            if (!ConsultationAccess.TryGetIdentity(User, out var identity) ||
+                !await ConsultationAccess.CanAccessPatientAsync(db, request.PatientId, identity, ct))
+                return NotFound();
+
+            if (request.ConsultationId is Guid consultationId &&
+                !await db.TelemedicineConsultations.AsNoTracking().AnyAsync(consultation =>
+                    consultation.Id == consultationId && consultation.PatientId == request.PatientId &&
+                    consultation.DoctorId == identity.UserId, ct))
+                return NotFound();
+
+            var command = new GenerateAiAnalysisCommand(request.PatientId, request.ConsultationId, analysisType);
+            var result = await sender.Send(command, ct);
+            if (result.IsSuccess)
+                return CreatedAtAction(nameof(GetAnalysis), new { id = result.Value }, result.Value);
+
+            return result.Error.Code switch
+            {
+                "AiAnalysis.Unavailable" => StatusCode(StatusCodes.Status503ServiceUnavailable, result.Error),
+                "AiAnalysis.InvalidResponse" => StatusCode(StatusCodes.Status502BadGateway, result.Error),
+                _ => BadRequest(result.Error)
+            };
+        }
+
         [HttpGet("notifications")]
         public async Task<IActionResult> GetNotifications(CancellationToken ct)
         {
@@ -392,6 +424,7 @@ namespace MyProject.WebAPI.Controllers
         }
 
         public sealed record CreateChatMessageRequest(Guid ConsultationId, string Message);
+        public sealed record GenerateAiAnalysisRequest(Guid PatientId, Guid? ConsultationId, string Type);
         public sealed record ChatMessageHistoryPage(
             IReadOnlyList<ChatMessage> Items,
             int Page,

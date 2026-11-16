@@ -422,14 +422,35 @@ TeleTip, sağlık ölçümlerini `HealthMeasurement` modeli üzerinden saklar. �
 
 Galaxy Watch 8 entegrasyonu için Wear OS Kotlin uygulaması ve MQTT tabanlı backend tüketicisi eklenmiştir. MQTT mesajları doğrulandıktan sonra tenant ve hasta bilgileriyle birlikte SQL Server’daki `HealthMeasurements` tablosuna kaydedilir.
 
-AI modeli aşağıdaki işlemleri destekleyecek şekilde hazırlandı:
+Ollama üzerinden çalışan yerel AI analiz motoru; hastanın son sağlık ölçümlerini (en fazla 100 kayıt) analiz eder ve sonucu veritabanındaki `AiAnalysis` kaydına ekler. `POST /api/telecare/analyses/generate` yalnızca doktor rolüne açıktır; doktorun hastaya atanmış olması ve isteğe bağlı görüşmenin aynı doktor/hastaya ait olması doğrulanır. İstek gövdesi:
 
-- Genel analiz
-- Risk tespiti
-- Doktor uyarısı
-- Risk skoru
+```json
+{
+  "patientId": "00000000-0000-0000-0000-000000000002",
+  "consultationId": null,
+  "type": "General"
+}
+```
 
-Gerçek AI analizi için Azure OpenAI, OpenAI veya başka bir model sağlayıcısının ayrıca bağlanması gerekir.
+Desteklenen analiz türleri `General`, `RiskDetection` ve `DoctorAlert` şeklindedir. Başarı yanıtı analiz kaydının kimliğini döndürür; analiz özeti ve modelin 0–1 aralığındaki risk dikkati göstergesi `GET /api/telecare/analyses/{id}` ile alınabilir. Doktor erişimi aynı hasta kapsamı kurallarına tabidir.
+
+Yerel API çalışırken Ollama'yı `http://localhost:11434` adresinde başlatın, ardından modeli indirin ve API'yi çalıştırın:
+
+```powershell
+ollama pull qwen2.5:7b
+dotnet run --project .\src\TeleTip.WebAPI\TeleTip.WebAPI.csproj
+```
+
+Farklı bir model veya Ollama adresi için `Ollama__Model` ve `Ollama__BaseUrl` ortam değişkenlerini kullanabilirsiniz. Compose ile isteğe bağlı AI servisini başlatmak için proje kökünde:
+
+```powershell
+docker compose --profile ai up -d
+docker exec teletip-ollama ollama pull qwen2.5:7b
+```
+
+Compose yapılandırması API'yi `http://ollama:11434` adresine yönlendirir; model indirildikten sonra analiz endpoint'i kullanılabilir. Modelin indirilmesi ve çalıştırılması ciddi disk/RAM/CPU/GPU kaynağı gerektirebilir; servis varsayılan Compose profilinde kapalıdır.
+
+Bu özellik klinik olarak doğrulanmış bir tanı veya puanlama sistemi değildir. Model çıktısı yalnızca karar desteği amaçlıdır ve doktor değerlendirmesinin yerine geçmez. Yalnızca atanmış doktorlar analiz başlatabilir; sağlık verileri yapılandırdığınız Ollama sunucusuna gönderilir. Sağlık verisi mevzuatı, erişim güvenliği ve model sağlayıcısı/veri saklama koşulları üretim kullanımından önce ayrıca değerlendirilmelidir.
 
 ## Samsung Galaxy Watch 8 ve MQTT
 
@@ -822,7 +843,7 @@ Hazır olan başlıca altyapılar:
 - Redis, RabbitMQ, blockchain ve health check altyapıları.
 - Unit test ve Codecov entegrasyonu.
 
-Geliştirilmesi gereken başlıca konular; gerçek Samsung Health SDK adapter’ı, cihaz üzerinde sensör testleri, tansiyon ve glikoz için desteklenen harici cihaz entegrasyonları, production MQTT güvenliği ve gerçek yapay zekâ servisidir.
+Geliştirilmesi gereken başlıca konular; gerçek Samsung Health SDK adapter’ı, cihaz üzerinde sensör testleri, tansiyon ve glikoz için desteklenen harici cihaz entegrasyonları ve production MQTT güvenliğidir. Ollama motoru teknik olarak entegre edilmiştir; klinik doğrulama, model değerlendirmesi ve mevzuat uygunluğu ayrıca gereklidir.
 
 ### Sonuç
 
@@ -843,7 +864,7 @@ Hazır olan özellikler:
 - WebRTC signaling
 - Blockchain hash notarization
 - IoT entity modeli
-- AI analiz entity modeli
+- Ollama tabanlı yerel AI analiz motoru ve doktor erişim kontrollü analiz API'si
 - Redis ve RabbitMQ altyapısı
 - Health checks
 - MQTT tabanlı Galaxy Watch 8 telemetrisi
