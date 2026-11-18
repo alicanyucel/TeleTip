@@ -23,6 +23,7 @@ Projenin amacı; hastaların sağlık verilerini güvenli şekilde toplamak, dok
 - [IoT ve AI](#iot-ve-ai)
 - [Samsung Galaxy Watch 8](#samsung-galaxy-watch-8)
 - [Güvenlik](#güvenlik)
+- [KVKK ve GDPR](#kvkk-ve-gdpr)
 - [Proje Yapısı](#proje-yapısı)
 - [Test ve Codecov Coverage](#test-ve-codecov-coverage)
 
@@ -625,6 +626,36 @@ Production ortamında ayrıca şu önlemler alınmalıdır:
 - Secret manager kullanımı
 
 Doktor/hasta rol politikaları ve görüşme katılımcısı bazlı erişim kontrolleri uygulanmıştır. Production’a geçmeden önce JWT sağlayıcısının `sub` ve `role` claim’lerini doğru ürettiği doğrulanmalıdır.
+
+## KVKK ve GDPR
+
+TeleTip sağlık verisi işleyebilecek şekilde tasarlanmıştır. Sağlık verileri özel nitelikli kişisel veri kapsamına girebildiğinden, bu bölüm bir uyum beyanı veya hukuki görüş değildir. README’de mevzuattan söz edilmesi, uygulamanın ya da işletmecisinin KVKK veya GDPR’ye uygun olduğu anlamına gelmez. Türkiye’de gerçek kullanıcı verisiyle kullanımdan önce veri sorumlusu rolündeki kurumun; kullanım amacı, veri akışları, hukuki işleme şartları ve hizmet modeline göre uzman hukuk danışmanlığı alması gerekir.
+
+### Hangi mevzuat uygulanabilir?
+
+- Türkiye’de kişisel veri işlenmesi bakımından 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) ve ilgili ikincil düzenlemeler değerlendirilmelidir. Sağlık verileri için KVKK’nın özel nitelikli kişisel verilere ilişkin güncel hükümleri ve sağlık hizmetlerine özgü mevzuat ayrıca incelenmelidir.
+- GDPR Türkiye’deki her projeye otomatik olarak uygulanmaz. AB’de bir kuruluş bulunması veya AB’deki kişilere mal/hizmet sunulması ya da davranışlarının izlenmesi gibi GDPR’nin bölgesel kapsam koşulları varsa ayrıca uygulanabilir. Uygulanabilirlik somut iş modeline göre belirlenmelidir.
+- TeleTip’in sağlık alanında kullanılması halinde KVKK/GDPR dışında sağlık hizmeti, uzaktan sağlık hizmeti ve tıbbi cihaz yazılımı mevzuatı gibi kurallar da gündeme gelebilir; bu README bunları değerlendirmez.
+
+### Canlı kullanımdan önce tamamlanması gerekenler
+
+1. **Roller, amaç ve hukuki şart:** Her veri akışı için veri sorumlusu/veri işleyen rolleri, amaç, veri kategorisi, alıcılar ve geçerli hukuki işleme şartı belirlenmelidir. Açık rıza her işleme için varsayılan veya tek hukuki dayanak değildir; gerekli olduğu yerde rıza belirli, bilgilendirilmiş ve geri alınabilir olmalıdır. Sağlık verisi işleme şartları güncel kanun metni ve somut sağlık hizmeti modeli üzerinden hukuk danışmanıyla doğrulanmalıdır.
+2. **Aydınlatma ve hak talepleri:** Hasta, doktor ve cihaz kullanıcısı için anlaşılır aydınlatma metinleri; veri sahibinin başvuru, erişim, düzeltme, silme/yok etme veya kısıtlama taleplerini değerlendirecek doğrulanmış süreç ve sorumlu iletişim kanalı oluşturulmalıdır. GDPR’nin uygulandığı durumlarda GDPR kapsamındaki haklar ve başvuru süreleri de ele alınmalıdır.
+3. **Saklama ve imha:** Her veri türü için mevzuata ve sağlık kayıtlarının saklama yükümlülüklerine uygun süre belirlenmeli; süre sonunda silme, yok etme veya anonimleştirme ve yedeklerden çıkarma prosedürleri tanımlanmalıdır. Hesabın silinmesi tıbbi kayıt saklama yükümlülüklerini kendiliğinden ortadan kaldırmaz.
+4. **Güvenlik ve kayıtlar:** Yetki en az ayrıcalıkla sınırlandırılmalı; aktarım ve saklama şifrelemesi, anahtar yönetimi, erişim denetim kayıtları, yedekleme, zafiyet yönetimi ve olay müdahalesi üretim ortamında uygulanıp test edilmelidir. Log ve izleme sistemlerine hasta adı, sağlık ölçümü, MQTT payload’ı, token veya sır yazılmamalıdır.
+5. **Tedarikçiler ve yurt dışı aktarım:** Bulut, hata izleme/telemetri, mesajlaşma, yedekleme, görüntülü görüşme ve blockchain sağlayıcılarının işlediği veriler ve veri konumları envanterlenmelidir. KVKK’nın güncel yurt dışına aktarım hükümleri ve GDPR uygulanıyorsa GDPR Bölüm V kapsamındaki şartlar, her aktarım için ayrıca değerlendirilmelidir.
+6. **Etki ve bildirim süreçleri:** İşleme faaliyetine göre veri koruma etki değerlendirmesi ihtiyacı, kayıt yükümlülükleri (KVKK kapsamında VERBİS yükümlülüğü dahil, uygulanıyorsa), ihlal tespiti ve ilgili makamlara/kişilere bildirim prosedürleri belirlenmelidir. GDPR kapsamındaki ihlal bildirim süreleri ve istisnaları ayrıca gözetilmelidir.
+7. **Blockchain:** Hash veya takma adlı kayıt, başka bilgilerle kişiyle ilişkilendirilebiliyorsa kişisel veri niteliğini koruyabilir. Sağlık verisi veya kişiyi belirlenebilir kılan veriler blockchain’e yazılmamalı; her türlü zincir üstü kayıt öncesi silme, saklama, yurt dışı aktarım ve geri döndürülemezlik etkileri hukuk ve güvenlik incelemesinden geçirilmelidir.
+
+### TeleTip’in mevcut durumu
+
+Bu repository bir yazılım temelidir; tek başına kurumsal uyum programı değildir. Kurumun veri sorumlusu bilgileri, amaç/hukuki şart envanteri, yayımlanmış aydınlatma ve gerekli rıza akışları, saklama-imha takvimi, veri sahibi talepleri, ihlal müdahalesi, tedarikçi sözleşmeleri ve yurt dışı aktarım değerlendirmesi bu dokümantasyondan sağlanmaz. Üretim ortamı, kullanıcı arayüzü, cihazlar ve dış hizmetlerle birlikte ayrıca tasarlanıp doğrulanmalıdır. Geliştirme Mosquitto yapılandırmasının anonim erişime açık olması nedeniyle gerçek sağlık verisiyle güvenli/uyumlu üretim kullanımı için uygun değildir.
+
+### Resmî kaynaklar
+
+- [6698 sayılı KVKK — Mevzuat Bilgi Sistemi](https://www.mevzuat.gov.tr/mevzuatmetin/1.5.6698.pdf)
+- [Kişisel Verileri Koruma Kurumu — özel nitelikli kişisel verilerin işlenmesi](https://www.kvkk.gov.tr/)
+- [GDPR (Regulation (EU) 2016/679) — EUR-Lex](https://eur-lex.europa.eu/eli/reg/2016/679/oj)
 
 ## Proje Yapısı
 
