@@ -803,14 +803,14 @@ docker compose up -d mosquitto
 
 ### Sensör Verileri ve Teknik Kısıtlar
 
-Wear OS uygulaması Health Services `MeasureClient` ile uygulama açıkken canlı kalp atış hızı örneklerini okur. Nabız izni kullanıcıdan çalışma anında istenir; desteklenen sensör ve izinler saate göre değişebilir. Okunan örnekler `HeartRate` türüyle MQTT üzerinden API'ye gönderilir. Uzun süreli arka plan/workout kaydı bu ilk sürümün kapsamında değildir.
+Wear OS uygulaması, kullanıcının başlattığı uzun süreli ölçüm oturumunda Health Services `ExerciseClient` kullanır. Sağlık foreground service'i ekran kapalıyken çalışmayı sürdürür, devam eden bildirim ve durdurma eylemi sunar; desteklenen nabız ve adım verilerini MQTT ile gönderir. Sensör türü ve kullanılabilirliği saat modeline ve Health Services yeteneklerine bağlıdır.
 
-- Kalp atış hızı için canlı ölçüm Health Services iznine ve cihaz desteğine bağlıdır.
-- Tansiyon için Samsung Health Monitor desteği ve düzenli manşet kalibrasyonu gerekir.
-- Galaxy Watch’ın her model ve bölgede sürekli veya klinik tansiyon ölçümü yaptığı varsayılmamalıdır.
-- Glikoz/kan şekeri verisi doğrudan saat sensöründen alınamaz; CGM veya desteklenen harici tıbbi cihaz gerekir.
-- Health Services canlı ölçüm API'si geçmiş Samsung Health verilerini okumaz.
-- `SamsungHealthSdkDataSource`, uygulama açıkken nabız akışını Health Services `MeasureClient` ile alır.
+- Hasta/tenant yapılandırma ekranında broker, tenant ID, hasta UUID'si ve MQTT kimlik bilgileri ayarlanır; ayarlar cihazda saklanır ve parola şifreli tercihlerle korunur.
+- Uygulama, broker bağlantısını test edebilir; README'deki Galaxy Watch 8 kontrol listesi gerçek saatten broker ve API'ye doğrulama adımlarını açıklar.
+- Tansiyon ve glikoz saatten doğrudan ölçülmez. Kullanıcının Health Connect'e eşitleyen destekli harici cihazı/uygulaması varsa son 7 günlük kayıtlar istenen izinlerle içe aktarılabilir.
+- Health Connect sağlayıcısı Wear OS cihazında bulunmuyorsa saatten bu kayıtlar okunamaz; harici cihazın telefon uygulaması veya üretici entegrasyonu gerekir.
+- Tansiyon Health Connect ölçümündeki sistolik ve diyastolik değerleri backend'e ayrı `BloodPressure` kayıtları olarak iletilir.
+- Health Services canlı ölçüm API'si geçmiş Samsung Health verilerini okumaz; harici tansiyon/glikoz kayıtları ayrı Health Connect akışından gelir.
 
 ### Teknik Mimari
 
@@ -842,9 +842,9 @@ Production ortamında MQTT için TLS, kullanıcı doğrulama, cihaz bazlı kimli
 
 ### Geliştirme Yol Haritası
 
-Kısa vadede Galaxy Watch 8 üzerinde canlı nabız akışının gerçek cihazda doğrulanması, uygulama arka plana geçtiğinde güvenilir kayıt için foreground workout service eklenmesi ve adım verilerinin Health Services üzerinden aktarılması planlanmaktadır.
+Wear OS tarafında uzun süreli foreground sağlık oturumu, desteklenen adım verilerinin MQTT aktarımı, hasta/tenant yapılandırması ve Health Connect üzerinden harici tansiyon/glikoz kayıtlarını içe aktarma akışları uygulanmıştır. Sonraki adım, bu özellikleri gerçek Galaxy Watch 8 ve desteklenen harici cihazlarla uçtan uca doğrulamaktır.
 
-Orta vadede Samsung Health Monitor destekli tansiyon senaryoları, CGM veya harici glikoz cihazı entegrasyonu, yapay zekâ sağlayıcısı, anomali tespiti ve doktor bildirimleri hedeflenmektedir.
+Orta vadede resmi cihaz/üretici entegrasyonları, yapay zekâ sağlayıcısı, anomali tespiti ve doktor bildirimleri hedeflenmektedir.
 
 Uzun vadede bulut tabanlı deployment, yüksek erişilebilirlik, kurumsal kimlik yönetimi, resmi medikal cihaz entegrasyonları, mevzuat ve sertifikasyon süreçleri planlanmaktadır.
 
@@ -859,11 +859,14 @@ Hazır olan başlıca altyapılar:
 - HealthMeasurement ve IoT device domain modelleri.
 - MQTT backend consumer ve Mosquitto Docker yapılandırması.
 - Wear OS Kotlin başlangıç uygulaması.
-- Samsung Galaxy Watch 8 MQTT veri akışı altyapısı.
+- Samsung Galaxy Watch 8 MQTT telemetrisi ve broker bağlantı testi.
+- Health Services ile kullanıcı başlatmalı uzun süreli arka plan nabız/adım ölçüm servisi.
+- Health Connect üzerinden izinli harici tansiyon ve glikoz kayıtlarını MQTT'ye aktarma.
+- Wear OS hasta/tenant/broker yapılandırma ekranı; parola şifreli olarak saklanır.
 - Redis, RabbitMQ, blockchain ve health check altyapıları.
 - Unit test ve Codecov entegrasyonu.
 
-Geliştirilmesi gereken başlıca konular; canlı nabız akışının Galaxy Watch 8 üzerinde doğrulanması, arka plan/workout takibi, adım verisi ve tansiyon/glikoz için desteklenen harici cihaz entegrasyonları ile production MQTT güvenliğidir. Ollama motoru teknik olarak entegre edilmiştir; klinik doğrulama, model değerlendirmesi ve mevzuat uygunluğu ayrıca gereklidir.
+Gerçek Galaxy Watch 8 üzerinde sensör/MQTT uçtan uca ve uzun süreli çalışma testi henüz bu geliştirme ortamında yapılmadı; README'deki test adımlarına göre cihazda doğrulanmalıdır. Harici tansiyon/glikoz aktarımı, cihaz ve eşlikçi uygulamanın Health Connect'e kayıt sağlamasına bağlıdır. Production MQTT için TLS, cihaz kimlik doğrulaması ve topic yetkilendirmesi ayrıca yapılandırılmalıdır. Ollama motoru teknik olarak entegre edilmiştir; klinik doğrulama, model değerlendirmesi ve mevzuat uygunluğu ayrıca gereklidir.
 
 ### Sonuç
 
@@ -887,17 +890,18 @@ Hazır olan özellikler:
 - Ollama tabanlı yerel AI analiz motoru ve doktor erişim kontrollü analiz API'si
 - Redis ve RabbitMQ altyapısı
 - Health checks
-- MQTT tabanlı Galaxy Watch 8 telemetrisi
-- Health Services ile canlı nabız ölçümü, runtime sensör izni ve MQTT yapılandırma ekranı olan Wear OS Kotlin uygulaması
+- MQTT tabanlı Galaxy Watch 8 telemetrisi ve uygulama içi broker bağlantı testi
+- Health Services ile nabız ve cihaz destekliyorsa adım verisini MQTT'ye aktaran, bildirimli uzun süreli foreground ölçüm servisi
+- Kullanıcı izniyle Health Connect'ten harici tansiyon/glikoz kayıtlarını MQTT'ye aktarma
+- Wear OS hasta/tenant/broker yapılandırma ekranı ve şifreli parola saklama
 - Doctor/Patient rol tabanlı yetkilendirme ve atanmış görüşme/hasta bazlı erişim kontrolleri
 - Chat geçmişinde görüşme, gönderen rolü ve tarih aralığı filtreleri ile sayfalama
 - TURN sunucusu için yapılandırma ve kısa ömürlü kimlik bilgisi üretimi
 
-Geliştirilmesi gereken özellikler:
+Doğrulanması veya tamamlanması gereken özellikler:
 
-- Galaxy Watch 8 üzerinde sensör/MQTT uçtan uca testleri ve uzun süreli arka plan ölçümü
-- Health Services üzerinden adım verisi ve desteklenen harici tansiyon/glikoz cihazı entegrasyonları
-- Wear OS için hasta/tenant yapılandırma ekranı
+- Gerçek Galaxy Watch 8 üzerinde sensör/MQTT uçtan uca ve uzun süreli arka plan çalışma testi (cihaz bağlı olmadığı için henüz yapılmadı)
+- Health Connect'e veri yazan destekli harici tansiyon/glikoz cihazlarıyla gerçek cihaz doğrulaması
 - Production MQTT için TLS ve cihaz kimlik doğrulaması
 - Production ortamında TURN sunucusunun kurulumu, TLS ve güvenlik ayarları
 - Production öncesi bağımsız penetrasyon testi ve kritik/yüksek bulguların giderilmesi
