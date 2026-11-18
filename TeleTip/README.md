@@ -460,6 +460,10 @@ Wear OS başlangıç uygulaması şu konumdadır:
 mobile/TeleTipWatch
 ```
 
+Galaxy Watch 8 uygulaması Health Services üzerinden canlı nabız alır. Android Studio'dan `mobile/TeleTipWatch` projesini açıp `app` modülünü saate kurun. Saati Wi-Fi üzerinden erişebilen bir MQTT broker'a bağlayın; geliştirmede broker adresi `tcp://<broker-LAN-IP>:1883`, TLS broker'da `ssl://<broker-host>:8883` olabilir. Uygulamada broker adresini, tenant ID ve hasta UUID'sini girip önce MQTT bağlantısını kurun, ardından nabız ölçümünü başlatın. Android'in sensör izni sorusunu onaylayın ve canlı ölçüm süresince uygulamayı açık tutun. Ölçüm, her nabız örneğinde backend'e yayınlanır.
+
+> `127.0.0.1` veya `localhost` saatten erişilebilen broker adresi değildir; broker'ın LAN adresini kullanın. MQTT broker erişim bilgileri uygulama ekranından girilebilir. Sağlık verisini gerçek ortamda yalnızca TLS ve kimlik doğrulamalı bir broker üzerinden gönderin.
+
 Backend, Mosquitto MQTT broker üzerinden aşağıdaki topic filtresini dinler:
 
 ```text
@@ -556,17 +560,18 @@ Docker Compose ile geliştirici ortamında broker’ı başlatmak için proje k�
 
 ### Sağlık verisi ve cihaz kısıtları
 
-- Kalp atışı, aktivite ve benzeri veriler cihaz ile Samsung Health izinlerine bağlıdır.
+- Canlı nabız örnekleri Wear OS Health Services üzerinden okunur ve uygulama açıkken MQTT ile gönderilir; geçmiş Samsung Health verileri bu akışa dahil değildir.
 - Tansiyon ölçümü Samsung Health Monitor desteği ve düzenli manşet kalibrasyonu gerektirir.
 - Kan şekeri/glikoz değeri Galaxy Watch’ın doğrudan ve klinik olarak onaylı bir sensöründen alınmaz. Bu veri için desteklenen CGM veya harici tıbbi cihaz entegrasyonu gerekir.
 - Samsung Health SDK erişimi ülkeye, cihaza, kullanıcı hesabına ve Samsung’un geliştirici izinlerine bağlı olabilir.
-- `SamsungHealthSdkDataSource` sınıfı, onaylı Samsung Health SDK adapter’ının bağlanacağı entegrasyon sınırıdır.
+- `SamsungHealthSdkDataSource` canlı nabız ölçümü için Health Services `MeasureClient` kullanır. Tansiyon ve glikoz saatten doğrudan okunmaz.
 
 Wear OS uygulamasında kullanılan temel izinler:
 
 ```text
 android.permission.INTERNET
-android.permission.BODY_SENSORS
+android.permission.BODY_SENSORS (Wear OS 5.1 / API 35 ve öncesi)
+android.permission.health.READ_HEART_RATE (Wear OS 6 / API 36 ve sonrası)
 android.permission.ACTIVITY_RECOGNITION
 ```
 
@@ -783,14 +788,14 @@ docker compose up -d mosquitto
 
 ### Sensör Verileri ve Teknik Kısıtlar
 
-Projedeki MQTT backend’i ve veri kayıt altyapısı hazırdır. Gerçek sensör verilerinin alınması için Wear OS tarafında Samsung Health veya Health Services SDK ile gerçek adapter kodunun tamamlanması, gerekli izinlerin verilmesi ve cihaz üzerinde test yapılması gerekir.
+Wear OS uygulaması Health Services `MeasureClient` ile uygulama açıkken canlı kalp atış hızı örneklerini okur. Nabız izni kullanıcıdan çalışma anında istenir; desteklenen sensör ve izinler saate göre değişebilir. Okunan örnekler `HeartRate` türüyle MQTT üzerinden API'ye gönderilir. Uzun süreli arka plan/workout kaydı bu ilk sürümün kapsamında değildir.
 
-- Kalp atışı, adım, aktivite ve benzeri veriler cihaz ve Samsung Health izinlerine bağlıdır.
+- Kalp atış hızı için canlı ölçüm Health Services iznine ve cihaz desteğine bağlıdır.
 - Tansiyon için Samsung Health Monitor desteği ve düzenli manşet kalibrasyonu gerekir.
 - Galaxy Watch’ın her model ve bölgede sürekli veya klinik tansiyon ölçümü yaptığı varsayılmamalıdır.
 - Glikoz/kan şekeri verisi doğrudan saat sensöründen alınamaz; CGM veya desteklenen harici tıbbi cihaz gerekir.
-- Samsung Health SDK erişimi ülkeye, cihaza, kullanıcı hesabına ve geliştirici izinlerine bağlı olabilir.
-- `SamsungHealthSdkDataSource` gerçek SDK adapter’ının bağlanacağı entegrasyon sınırıdır.
+- Health Services canlı ölçüm API'si geçmiş Samsung Health verilerini okumaz.
+- `SamsungHealthSdkDataSource`, uygulama açıkken nabız akışını Health Services `MeasureClient` ile alır.
 
 ### Teknik Mimari
 
@@ -822,7 +827,7 @@ Production ortamında MQTT için TLS, kullanıcı doğrulama, cihaz bazlı kimli
 
 ### Geliştirme Yol Haritası
 
-Kısa vadede gerçek Samsung Health adapter’ının tamamlanması, kalp atışı ve adım verilerinin cihazdan okunması, Wear OS yapılandırma ekranlarının eklenmesi ve MQTT uçtan uca testlerinin yapılması planlanmaktadır.
+Kısa vadede Galaxy Watch 8 üzerinde canlı nabız akışının gerçek cihazda doğrulanması, uygulama arka plana geçtiğinde güvenilir kayıt için foreground workout service eklenmesi ve adım verilerinin Health Services üzerinden aktarılması planlanmaktadır.
 
 Orta vadede Samsung Health Monitor destekli tansiyon senaryoları, CGM veya harici glikoz cihazı entegrasyonu, yapay zekâ sağlayıcısı, anomali tespiti ve doktor bildirimleri hedeflenmektedir.
 
@@ -843,7 +848,7 @@ Hazır olan başlıca altyapılar:
 - Redis, RabbitMQ, blockchain ve health check altyapıları.
 - Unit test ve Codecov entegrasyonu.
 
-Geliştirilmesi gereken başlıca konular; gerçek Samsung Health SDK adapter’ı, cihaz üzerinde sensör testleri, tansiyon ve glikoz için desteklenen harici cihaz entegrasyonları ve production MQTT güvenliğidir. Ollama motoru teknik olarak entegre edilmiştir; klinik doğrulama, model değerlendirmesi ve mevzuat uygunluğu ayrıca gereklidir.
+Geliştirilmesi gereken başlıca konular; canlı nabız akışının Galaxy Watch 8 üzerinde doğrulanması, arka plan/workout takibi, adım verisi ve tansiyon/glikoz için desteklenen harici cihaz entegrasyonları ile production MQTT güvenliğidir. Ollama motoru teknik olarak entegre edilmiştir; klinik doğrulama, model değerlendirmesi ve mevzuat uygunluğu ayrıca gereklidir.
 
 ### Sonuç
 
@@ -868,15 +873,15 @@ Hazır olan özellikler:
 - Redis ve RabbitMQ altyapısı
 - Health checks
 - MQTT tabanlı Galaxy Watch 8 telemetrisi
-- Wear OS Kotlin başlangıç uygulaması
+- Health Services ile canlı nabız ölçümü, runtime sensör izni ve MQTT yapılandırma ekranı olan Wear OS Kotlin uygulaması
 - Doctor/Patient rol tabanlı yetkilendirme ve atanmış görüşme/hasta bazlı erişim kontrolleri
 - Chat geçmişinde görüşme, gönderen rolü ve tarih aralığı filtreleri ile sayfalama
 - TURN sunucusu için yapılandırma ve kısa ömürlü kimlik bilgisi üretimi
 
 Geliştirilmesi gereken özellikler:
 
-- Gerçek AI sağlayıcısı entegrasyonu
-- Samsung Health SDK’nın onaylı cihaz adapter’ı
+- Galaxy Watch 8 üzerinde sensör/MQTT uçtan uca testleri ve uzun süreli arka plan ölçümü
+- Health Services üzerinden adım verisi ve desteklenen harici tansiyon/glikoz cihazı entegrasyonları
 - Wear OS için hasta/tenant yapılandırma ekranı
 - Production MQTT için TLS ve cihaz kimlik doğrulaması
 - Production ortamında TURN sunucusunun kurulumu, TLS ve güvenlik ayarları

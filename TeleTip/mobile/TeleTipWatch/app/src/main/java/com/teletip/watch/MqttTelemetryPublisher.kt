@@ -6,6 +6,7 @@ import org.eclipse.paho.client.mqttv3.IMqttActionListener
 import org.eclipse.paho.client.mqttv3.IMqttToken
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions
 import org.eclipse.paho.client.mqttv3.MqttMessage
+import org.json.JSONObject
 import java.util.UUID
 
 class MqttTelemetryPublisher(
@@ -13,7 +14,9 @@ class MqttTelemetryPublisher(
 	private val brokerUrl: String,
 	private val tenantId: String,
 	private val patientId: UUID,
-	private val deviceId: UUID
+	private val deviceId: UUID,
+	private val username: String = "",
+	private val password: String = ""
 ) {
 	private val client = MqttAndroidClient(
 		context,
@@ -25,6 +28,10 @@ class MqttTelemetryPublisher(
 		val options = MqttConnectOptions().apply {
 			isCleanSession = true
 			isAutomaticReconnect = true
+			if (username.isNotBlank()) {
+				userName = username
+				this.password = this@MqttTelemetryPublisher.password.toCharArray()
+			}
 		}
 
 		client.connect(options, null, object : IMqttActionListener {
@@ -41,26 +48,33 @@ class MqttTelemetryPublisher(
 		}
 
 		val topic = "teletip/tenants/$tenantId/patients/$patientId/measurements"
-		val payload = """
-			{
-			  "deviceId":"${measurement.deviceId}",
-			  "type":"${measurement.type}",
-			  "value":${measurement.value},
-			  "unit":"${measurement.unit}",
-			  "measuredAt":"${measurement.measuredAt}"
-			}
-		""".trimIndent()
+		val type = when (measurement.type) {
+			WatchHealthType.HEART_RATE -> "HeartRate"
+			else -> throw IllegalArgumentException("Unsupported backend measurement type: ${measurement.type}")
+		}
+		val payload = JSONObject()
+			.put("deviceId", measurement.deviceId.toString())
+			.put("type", type)
+			.put("value", measurement.value)
+			.put("unit", measurement.unit)
+			.put("measuredAt", measurement.measuredAt.toString())
+			.put("source", "Samsung Galaxy Watch 8")
+			.toString()
 
-		val message = MqttMessage(payload.toByteArray()).apply {
+		val message = MqttMessage(payload.toByteArray(Charsets.UTF_8)).apply {
 			qos = 1
 			isRetained = false
 		}
 
-		client.publish(topic, message, null, object : IMqttActionListener {
-			override fun onSuccess(asyncActionToken: IMqttToken?) = onResult(Result.success(Unit))
-			override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) =
-				onResult(Result.failure(exception ?: IllegalStateException("MQTT publish failed")))
-		})
+		try {
+			client.publish(topic, message, null, object : IMqttActionListener {
+				override fun onSuccess(asyncActionToken: IMqttToken?) = onResult(Result.success(Unit))
+				override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) =
+					onResult(Result.failure(exception ?: IllegalStateException("MQTT publish failed")))
+			})
+		} catch (exception: Exception) {
+			onResult(Result.failure(exception))
+		}
 	}
 
 	fun disconnect() {

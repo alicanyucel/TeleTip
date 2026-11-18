@@ -22,8 +22,8 @@ kotlin {
 
 dependencies {
 	implementation("androidx.core:core-ktx:1.15.0")
-	implementation("androidx.activity:activity-compose:1.10.0")
-	implementation("androidx.wear.compose:compose-material3:1.4.0")
-	implementation("androidx.health:health-services-client:1.1.0-alpha05")
+	implementation("androidx.health:health-services-client:1.1.0")
+	implementation("com.google.guava:guava:33.3.1-android")
 	implementation("org.eclipse.paho:org.eclipse.paho.android.service:1.1.1")
+	implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
 }
