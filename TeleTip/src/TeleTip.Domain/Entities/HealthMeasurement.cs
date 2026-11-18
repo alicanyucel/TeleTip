@@ -48,6 +48,7 @@ namespace MyProject.Domain.Entities
         BloodPressure,
         BloodGlucose,
         OxygenSaturation,
-        BodyTemperature
+        BodyTemperature,
+        Steps
     }
 }

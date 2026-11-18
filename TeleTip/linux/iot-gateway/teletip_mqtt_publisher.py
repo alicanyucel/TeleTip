@@ -17,6 +17,7 @@ MEASUREMENT_TYPES = (
 	"BloodGlucose",
 	"OxygenSaturation",
 	"BodyTemperature",
+	"Steps",
 )
 
 

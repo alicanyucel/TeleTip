@@ -28,7 +28,9 @@ data class WatchMeasurement(
 	val type: WatchHealthType,
 	val value: Double,
 	val unit: String,
-	val measuredAt: Instant = Instant.now()
+	val measuredAt: Instant = Instant.now(),
+	val source: String = "Samsung Galaxy Watch",
+	val recordId: String? = null
 )
 
 interface SamsungHealthDataSource {

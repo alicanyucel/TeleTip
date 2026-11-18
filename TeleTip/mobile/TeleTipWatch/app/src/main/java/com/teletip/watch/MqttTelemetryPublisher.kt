@@ -50,7 +50,11 @@ class MqttTelemetryPublisher(
 		val topic = "teletip/tenants/$tenantId/patients/$patientId/measurements"
 		val type = when (measurement.type) {
 			WatchHealthType.HEART_RATE -> "HeartRate"
-			else -> throw IllegalArgumentException("Unsupported backend measurement type: ${measurement.type}")
+			WatchHealthType.BLOOD_PRESSURE -> "BloodPressure"
+			WatchHealthType.BLOOD_GLUCOSE -> "BloodGlucose"
+			WatchHealthType.OXYGEN_SATURATION -> "OxygenSaturation"
+			WatchHealthType.BODY_TEMPERATURE -> "BodyTemperature"
+			WatchHealthType.STEPS -> "Steps"
 		}
 		val payload = JSONObject()
 			.put("deviceId", measurement.deviceId.toString())
@@ -58,7 +62,8 @@ class MqttTelemetryPublisher(
 			.put("value", measurement.value)
 			.put("unit", measurement.unit)
 			.put("measuredAt", measurement.measuredAt.toString())
-			.put("source", "Samsung Galaxy Watch 8")
+			.put("source", measurement.source)
+			.apply { measurement.recordId?.let { put("recordId", it) } }
 			.toString()
 
 		val message = MqttMessage(payload.toByteArray(Charsets.UTF_8)).apply {

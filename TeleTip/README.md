@@ -554,26 +554,41 @@ python teletip_mqtt_publisher.py \
   --unit bpm
 ```
 
-İstemci UUID biçimindeki hasta ve cihaz kimliklerini doğrular, ölçüm değerini MQTT QoS 1 ile yayınlar ve broker onayı gelmezse hata döndürür. Desteklenen ölçüm türleri: `HeartRate`, `BloodPressure`, `BloodGlucose`, `OxygenSaturation`, `BodyTemperature`. Tarih verilmezse UTC zamanı kullanılır; cihazın ölçüm zamanını belirtmek için `--measured-at 2026-11-16T14:30:00Z` kullanılabilir.
+İstemci UUID biçimindeki hasta ve cihaz kimliklerini doğrular, ölçüm değerini MQTT QoS 1 ile yayınlar ve broker onayı gelmezse hata döndürür. Desteklenen ölçüm türleri: `HeartRate`, `BloodPressure`, `BloodGlucose`, `OxygenSaturation`, `BodyTemperature`, `Steps`. Tarih verilmezse UTC zamanı kullanılır; cihazın ölçüm zamanını belirtmek için `--measured-at 2026-11-16T14:30:00Z` kullanılabilir.
 
 Docker Compose ile geliştirici ortamında broker’ı başlatmak için proje kökünde `docker compose up -d mosquitto` çalıştırın. Mesajları veritabanına kaydetmek için TeleTip API’nin de çalışıyor olması gerekir; host üzerinde çalışan API için MQTT host ayarı `127.0.0.1` olmalı, container içindeki API ise Compose’un `mosquitto` servis adını kullanır. Linux cihazdan erişim için `TELETIP_MQTT_HOST` değerine Docker’ın çalıştığı makinenin LAN IP adresini yazın. Mevcut geliştirme Mosquitto yapılandırması anonim erişime açıktır; internete veya güvenilmeyen bir ağa açmayın. Gerçek sağlık verisi taşıyan üretim ortamında TLS, cihaz başına kullanıcı/şifre ve topic yetkilendirmesi zorunludur.
 
 ### Sağlık verisi ve cihaz kısıtları
 
-- Canlı nabız örnekleri Wear OS Health Services üzerinden okunur ve uygulama açıkken MQTT ile gönderilir; geçmiş Samsung Health verileri bu akışa dahil değildir.
-- Tansiyon ölçümü Samsung Health Monitor desteği ve düzenli manşet kalibrasyonu gerektirir.
-- Kan şekeri/glikoz değeri Galaxy Watch’ın doğrudan ve klinik olarak onaylı bir sensöründen alınmaz. Bu veri için desteklenen CGM veya harici tıbbi cihaz entegrasyonu gerekir.
-- Samsung Health SDK erişimi ülkeye, cihaza, kullanıcı hesabına ve Samsung’un geliştirici izinlerine bağlı olabilir.
-- `SamsungHealthSdkDataSource` canlı nabız ölçümü için Health Services `MeasureClient` kullanır. Tansiyon ve glikoz saatten doğrudan okunmaz.
+- Uzun ölçüm oturumu kullanıcı tarafından başlatılır; `ExerciseClient` bir health foreground service içinde çalışır, devam eden bildirimi gösterir ve nabız ile cihaz destekliyorsa adımları MQTT QoS 1 ile gönderir. Gerçek arka plan ve Galaxy Watch 8 doğrulaması bağlı cihaz, izin verilmiş broker ve çalışan API gerektirir.
+- Adımlar `Steps` olarak kaydedilir. Bu enum'a eklenen yeni değer mevcut ölçüm türlerinin sayısal değerlerini değiştirmez.
+- Tansiyon ve glikoz Galaxy Watch sensörlerinden doğrudan okunmaz. Uygulama, cihazın Health Connect ile eşitlediği son 7 günlük `BloodPressureRecord` ve `BloodGlucoseRecord` verilerini, kullanıcı izniyle alabilir.
+- Health Connect yoksa veya cihaz sağlayıcıya kayıt aktarmıyorsa dış cihaz verisi alınamaz; tansiyon/glikoz cihazı ve telefon uygulamasının Health Connect senkronizasyonunu desteklemesi gerekir. Tansiyon sistolik/diastolik değerleri backend'in mevcut tek değerli modelinde `mmHg_systolic` ve `mmHg_diastolic` birimleriyle aynı ölçüm türüne ayrı kayıtlar olarak gönderilir.
+- Health Connect verisinin `source` alanında kaynak uygulama paketi MQTT payload'ına eklenir. Mevcut backend entity'si bu alanı kalıcı olarak saklamaz. İçe aktarılan Health Connect kayıt kimlikleri cihazda tutulur; tekrar içe aktarma aynı kaydı yeniden göndermez.
+- Hasta, tenant, broker ve MQTT kullanıcı bilgileri uygulama ayarlarında saklanır; parola Android Keystore tabanlı şifreli tercihlerde tutulur. Gerçek sağlık verisi taşıyan production broker'da TLS, kullanıcı doğrulama, cihaz başına kimlik bilgileri ve topic yetkilendirmesi zorunludur.
 
 Wear OS uygulamasında kullanılan temel izinler:
 
 ```text
 android.permission.INTERNET
-android.permission.BODY_SENSORS (Wear OS 5.1 / API 35 ve öncesi)
-android.permission.health.READ_HEART_RATE (Wear OS 6 / API 36 ve sonrası)
+android.permission.BODY_SENSORS / android.permission.health.READ_HEART_RATE
+android.permission.BODY_SENSORS_BACKGROUND (API 33-35, uzun oturum için)
+android.permission.FOREGROUND_SERVICE_HEALTH
 android.permission.ACTIVITY_RECOGNITION
+Health Connect READ_BLOOD_PRESSURE ve READ_BLOOD_GLUCOSE (kullanıcıdan çalışma anında istenir)
 ```
+
+#### Galaxy Watch 8 uçtan uca doğrulama
+
+1. `mobile/TeleTipWatch` projesini Android Studio'da açın ve `:app:assembleDebug` görevini çalıştırın. APK `mobile/TeleTipWatch/app/build/outputs/apk/debug/app-debug.apk` konumuna yazılır.
+2. APK'yı Wear OS 6 yüklü gerçek Galaxy Watch 8'e kurun. API ve MQTT broker'ı saatin erişebildiği bir ağ adresine açın; uygulamaya geçerli tenant ID, hasta UUID'si, broker ve gerekiyorsa kullanıcı bilgilerini girip **Ayarları kaydet**'e basın.
+3. **MQTT bağlantısını test et** başarılı olmadan ölçümü başlatmayın. İlk çalıştırmada nabız, aktivite tanıma, bildirim ve arka plan sensör izinlerini verin.
+4. **Nabız ve adım ölçümünü başlat** seçin. Sürekli bildirimin görünmesini doğrulayın, saati ekranı kapalı şekilde en az birkaç dakika kullanın ve ölçüm sırasında nabız sensörünün veri üretmesi için saati bileğe takın.
+5. Broker'da `teletip/tenants/<tenant>/patients/<hasta-uuid>/measurements` konusunu izleyin (`mosquitto_sub -h <broker> -t 'teletip/tenants/+/patients/+/measurements' -v`). `HeartRate` ve cihaz adım verisini sağlıyorsa `Steps` JSON mesajlarının geldiğini; API/DB tarafında hasta ve cihazla ilişkilendirildiğini doğrulayın.
+6. Bildirimdeki **Durdur** eylemini kullanıp yeni mesajların kesildiğini doğrulayın. Ölçüm sürerken saati yeniden başlatma veya bağlantıyı kesme gibi uzun süreli kararlılık kontrollerini ayrıca gerçekleştirin.
+7. Harici tansiyon/glikoz cihazı önce kendi uygulamasıyla Health Connect'e veri yazmalıdır. Sağlayıcı saatte mevcutsa uygulamadaki Health Connect aktarımını seçin, izin verin ve broker/API'de `BloodPressure` (sistolik ve diyastolik ayrı satırlar) veya `BloodGlucose` ölçümlerini doğrulayın. Wear OS cihazında Health Connect yoksa veri saatin kendisinden okunamaz; üretici SDK'sı veya telefon eşlikçi uygulaması gerekir.
+
+> Bu kaynak ortamında Galaxy Watch 8 bağlı olmadığından gerçek sensör, ekran kapalı uzun oturum ve broker/API uçtan uca doğrulaması çalıştırılamadı. Derleme başarısı cihaz testi yerine geçmez.
 
 > Geliştirme ortamındaki Mosquitto yapılandırması anonymous bağlantıya izin verir. Production ortamında TLS, kullanıcı doğrulama, cihaz bazlı kimlik bilgileri ve topic yetkilendirmesi zorunlu tutulmalıdır.
 
