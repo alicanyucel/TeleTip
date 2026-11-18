@@ -23,6 +23,9 @@ namespace MyProject.Infrastructure.Repositories
             => DbSet.Update(entity);
 
         public void Delete(T entity)
-            => DbSet.Remove(entity);
+        {
+            entity.SoftDelete();
+            DbSet.Update(entity);
+        }
     }
 }

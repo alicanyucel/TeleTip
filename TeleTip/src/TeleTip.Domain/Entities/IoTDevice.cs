@@ -37,10 +37,26 @@ namespace MyProject.Domain.Entities
             });
         }
 
+        public Result UpdateDetails(string name, string serialNumber, DeviceType type)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return Result.Failure(Error.Validation(nameof(Name), "Device name cannot be empty."));
+            if (string.IsNullOrWhiteSpace(serialNumber))
+                return Result.Failure(Error.Validation(nameof(SerialNumber), "Serial number cannot be empty."));
+            if (!Enum.IsDefined(type))
+                return Result.Failure(Error.Validation(nameof(Type), "Device type is invalid."));
+
+            Name = name.Trim();
+            SerialNumber = serialNumber.Trim();
+            Type = type;
+            MarkUpdated();
+            return Result.Success();
+        }
+
         public void Deactivate()
         {
             IsActive = false;
-            UpdatedAt = DateTime.UtcNow;
+            MarkUpdated();
         }
     }
 

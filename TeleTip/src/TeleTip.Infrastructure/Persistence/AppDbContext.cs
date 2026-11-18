@@ -27,22 +27,19 @@ namespace MyProject.Infrastructure.Persistence
         {
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
-            // Multi-tenant global query filter
             var tenantId = tenantService.GetCurrentTenantId();
-            if (!string.IsNullOrEmpty(tenantId))
-            {
-                modelBuilder.Entity<Product>().HasQueryFilter(p => p.TenantId == tenantId);
-                modelBuilder.Entity<Patient>().HasQueryFilter(p => p.TenantId == tenantId);
-                modelBuilder.Entity<Doctor>().HasQueryFilter(p => p.TenantId == tenantId);
-                modelBuilder.Entity<TelemedicineConsultation>().HasQueryFilter(p => p.TenantId == tenantId);
-                modelBuilder.Entity<IoTDevice>().HasQueryFilter(p => p.TenantId == tenantId);
-                modelBuilder.Entity<HealthMeasurement>().HasQueryFilter(p => p.TenantId == tenantId);
-                modelBuilder.Entity<Prescription>().HasQueryFilter(p => p.TenantId == tenantId);
-                modelBuilder.Entity<MedicalReport>().HasQueryFilter(p => p.TenantId == tenantId);
-                modelBuilder.Entity<AiAnalysis>().HasQueryFilter(p => p.TenantId == tenantId);
-                modelBuilder.Entity<Notification>().HasQueryFilter(p => p.TenantId == tenantId);
-                modelBuilder.Entity<ChatMessage>().HasQueryFilter(p => p.TenantId == tenantId);
-            }
+            var hasTenant = !string.IsNullOrEmpty(tenantId);
+            modelBuilder.Entity<Product>().HasQueryFilter(entity => !entity.IsDeleted && (!hasTenant || entity.TenantId == tenantId));
+            modelBuilder.Entity<Patient>().HasQueryFilter(entity => !entity.IsDeleted && (!hasTenant || entity.TenantId == tenantId));
+            modelBuilder.Entity<Doctor>().HasQueryFilter(entity => !entity.IsDeleted && (!hasTenant || entity.TenantId == tenantId));
+            modelBuilder.Entity<TelemedicineConsultation>().HasQueryFilter(entity => !entity.IsDeleted && (!hasTenant || entity.TenantId == tenantId));
+            modelBuilder.Entity<IoTDevice>().HasQueryFilter(entity => !entity.IsDeleted && (!hasTenant || entity.TenantId == tenantId));
+            modelBuilder.Entity<HealthMeasurement>().HasQueryFilter(entity => !entity.IsDeleted && (!hasTenant || entity.TenantId == tenantId));
+            modelBuilder.Entity<Prescription>().HasQueryFilter(entity => !entity.IsDeleted && (!hasTenant || entity.TenantId == tenantId));
+            modelBuilder.Entity<MedicalReport>().HasQueryFilter(entity => !entity.IsDeleted && (!hasTenant || entity.TenantId == tenantId));
+            modelBuilder.Entity<AiAnalysis>().HasQueryFilter(entity => !entity.IsDeleted && (!hasTenant || entity.TenantId == tenantId));
+            modelBuilder.Entity<Notification>().HasQueryFilter(entity => !entity.IsDeleted && (!hasTenant || entity.TenantId == tenantId));
+            modelBuilder.Entity<ChatMessage>().HasQueryFilter(entity => !entity.IsDeleted && (!hasTenant || entity.TenantId == tenantId));
 
             ConfigureTeleCareEntities(modelBuilder);
 
@@ -67,7 +64,7 @@ namespace MyProject.Infrastructure.Persistence
                 entity.Property(p => p.LastName).HasMaxLength(100).IsRequired();
                 entity.Property(p => p.Specialization).HasMaxLength(150).IsRequired();
                 entity.Property(p => p.LicenseNumber).HasMaxLength(100).IsRequired();
-                entity.HasIndex(p => p.LicenseNumber).IsUnique();
+                entity.HasIndex(p => p.LicenseNumber).IsUnique().HasFilter("[IsDeleted] = 0");
             });
 
             modelBuilder.Entity<TelemedicineConsultation>(entity =>
@@ -84,7 +81,7 @@ namespace MyProject.Infrastructure.Persistence
                 entity.Property(p => p.Name).HasMaxLength(150).IsRequired();
                 entity.Property(p => p.SerialNumber).HasMaxLength(150).IsRequired();
                 entity.Property(p => p.Type).HasConversion<string>().HasMaxLength(40);
-                entity.HasIndex(p => p.SerialNumber).IsUnique();
+                entity.HasIndex(p => p.SerialNumber).IsUnique().HasFilter("[IsDeleted] = 0");
             });
 
             modelBuilder.Entity<HealthMeasurement>(entity =>

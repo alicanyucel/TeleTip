@@ -1,4 +1,5 @@
 using FluentAssertions;
+using MyProject.Application.Abstractions.Cache;
 using MyProject.Application.Abstractions.Messaging;
 using MyProject.Application.Features.Products.Commands.CreateProduct;
 using MyProject.Domain.Abstractions;
@@ -12,10 +13,11 @@ namespace MyProject.Tests.Application.Products
     {
         private readonly IProductRepository _productRepository = Substitute.For<IProductRepository>();
         private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
+        private readonly ICacheService _cacheService = Substitute.For<ICacheService>();
         private readonly CreateProductCommandHandler _handler;
 
         public CreateProductCommandHandlerTests()
-            => _handler = new CreateProductCommandHandler(_productRepository, _unitOfWork);
+            => _handler = new CreateProductCommandHandler(_productRepository, _unitOfWork, _cacheService);
 
         [Fact]
         public async Task Handle_ValidCommand_ShouldReturnSuccessWithGuid()
@@ -31,6 +33,7 @@ namespace MyProject.Tests.Application.Products
             result.Value.Should().NotBeEmpty();
             await _productRepository.Received(1).AddAsync(Arg.Any<Product>(), Arg.Any<CancellationToken>());
             await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+            await _cacheService.Received(1).RemoveAsync("products:all", Arg.Any<CancellationToken>());
         }
 
         [Fact]

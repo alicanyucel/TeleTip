@@ -40,6 +40,24 @@ namespace MyProject.Domain.Entities
                 MeasuredAt = measuredAt
             });
         }
+
+        public Result UpdateMeasurement(MeasurementType type, decimal value, string unit, DateTime measuredAt, Guid? deviceId)
+        {
+            if (value < 0)
+                return Result.Failure(Error.Validation(nameof(Value), "Value cannot be negative."));
+            if (string.IsNullOrWhiteSpace(unit))
+                return Result.Failure(Error.Validation(nameof(Unit), "Unit cannot be empty."));
+            if (!Enum.IsDefined(type))
+                return Result.Failure(Error.Validation(nameof(Type), "Measurement type is invalid."));
+
+            Type = type;
+            Value = value;
+            Unit = unit.Trim();
+            MeasuredAt = measuredAt;
+            DeviceId = deviceId;
+            MarkUpdated();
+            return Result.Success();
+        }
     }
 
     public enum MeasurementType

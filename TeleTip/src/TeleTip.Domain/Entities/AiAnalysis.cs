@@ -41,6 +41,23 @@ namespace MyProject.Domain.Entities
                 AnalyzedAt = DateTime.UtcNow
             });
         }
+
+        public Result UpdateAnalysis(AnalysisType type, string result, decimal? riskScore)
+        {
+            if (string.IsNullOrWhiteSpace(result))
+                return Result.Failure(Error.Validation(nameof(AnalysisResult), "Analysis result cannot be empty."));
+            if (riskScore is < 0 or > 1)
+                return Result.Failure(Error.Validation(nameof(RiskScore), "Risk score must be between 0 and 1."));
+            if (!Enum.IsDefined(type))
+                return Result.Failure(Error.Validation(nameof(Type), "Analysis type is invalid."));
+
+            Type = type;
+            AnalysisResult = result.Trim();
+            RiskScore = riskScore;
+            RequiresDoctorReview = riskScore >= 0.7m;
+            MarkUpdated();
+            return Result.Success();
+        }
     }
 
     public enum AnalysisType

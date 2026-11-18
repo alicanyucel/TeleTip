@@ -34,11 +34,21 @@ namespace MyProject.Domain.Entities
             });
         }
 
+        public Result Reschedule(DateTime scheduledAt)
+        {
+            if (Status != ConsultationStatus.Scheduled)
+                return Result.Failure(Error.Validation(nameof(Status), "Only scheduled consultations can be rescheduled."));
+
+            ScheduledAt = scheduledAt;
+            MarkUpdated();
+            return Result.Success();
+        }
+
         public void Start()
         {
             StartedAt = DateTime.UtcNow;
             Status = ConsultationStatus.InProgress;
-            UpdatedAt = DateTime.UtcNow;
+            MarkUpdated();
         }
 
         public void Complete(string? notes = null)
@@ -46,13 +56,13 @@ namespace MyProject.Domain.Entities
             EndedAt = DateTime.UtcNow;
             Notes = notes;
             Status = ConsultationStatus.Completed;
-            UpdatedAt = DateTime.UtcNow;
+            MarkUpdated();
         }
 
         public void Cancel()
         {
             Status = ConsultationStatus.Cancelled;
-            UpdatedAt = DateTime.UtcNow;
+            MarkUpdated();
         }
     }
 

@@ -18,6 +18,8 @@ namespace MyProject.Domain.Entities
 
             if (price <= 0)
                 return Result.Failure<Product>(Error.Validation(nameof(Price), "Price must be greater than zero."));
+            if (stock < 0)
+                return Result.Failure<Product>(Error.Validation(nameof(Stock), "Stock cannot be negative."));
 
             var product = new Product
             {
@@ -36,12 +38,16 @@ namespace MyProject.Domain.Entities
         {
             if (string.IsNullOrWhiteSpace(name))
                 return Result.Failure(Error.Validation(nameof(Name), "Name cannot be empty."));
+            if (price <= 0)
+                return Result.Failure(Error.Validation(nameof(Price), "Price must be greater than zero."));
+            if (stock < 0)
+                return Result.Failure(Error.Validation(nameof(Stock), "Stock cannot be negative."));
 
-            Name = name;
-            Description = description;
+            Name = name.Trim();
+            Description = description.Trim();
             Price = price;
             Stock = stock;
-            UpdatedAt = DateTime.UtcNow;
+            MarkUpdated();
 
             return Result.Success();
         }

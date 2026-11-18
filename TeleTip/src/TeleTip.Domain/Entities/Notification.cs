@@ -40,11 +40,27 @@ namespace MyProject.Domain.Entities
             });
         }
 
+        public Result UpdateDetails(NotificationType type, string title, string message)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+                return Result.Failure(Error.Validation(nameof(Title), "Title cannot be empty."));
+            if (string.IsNullOrWhiteSpace(message))
+                return Result.Failure(Error.Validation(nameof(Message), "Message cannot be empty."));
+            if (!Enum.IsDefined(type))
+                return Result.Failure(Error.Validation(nameof(Type), "Notification type is invalid."));
+
+            Type = type;
+            Title = title.Trim();
+            Message = message.Trim();
+            MarkUpdated();
+            return Result.Success();
+        }
+
         public void MarkAsRead()
         {
             IsRead = true;
             ReadAt = DateTime.UtcNow;
-            UpdatedAt = DateTime.UtcNow;
+            MarkUpdated();
         }
     }
 

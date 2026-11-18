@@ -243,40 +243,27 @@ Ana API adresi:
 Örnek endpoint’ler:
 
 ```text
-GET  /api/telecare/patients
-GET  /api/telecare/patients/{id}
-POST /api/telecare/patients
+GET    /api/telecare/{resource}
+GET    /api/telecare/{resource}/{id}
+POST   /api/telecare/{resource}
+PUT    /api/telecare/{resource}/{id}
+DELETE /api/telecare/{resource}/{id}
 
-GET  /api/telecare/doctors
-GET  /api/telecare/doctors/{id}
-POST /api/telecare/doctors
+Kaynaklar: patients, doctors, consultations, devices, measurements,
+prescriptions, reports, analyses, notifications ve chat-messages.
 
-GET  /api/telecare/consultations
-GET  /api/telecare/consultations/{id}
-POST /api/telecare/consultations
+GET    /api/telecare/chat-messages?consultationId={guid}&page=1&pageSize=50
+GET    /api/telecare/chat-messages/{messageId}
+POST   /api/telecare/chat-messages
+PUT    /api/telecare/chat-messages/{messageId}
+DELETE /api/telecare/chat-messages/{messageId}
+GET    /api/telecare/ice-servers?consultationId={guid}
 
-GET  /api/telecare/devices
-POST /api/telecare/devices
-
-GET  /api/telecare/measurements
-POST /api/telecare/measurements
-
-GET  /api/telecare/prescriptions
-POST /api/telecare/prescriptions
-
-GET  /api/telecare/reports
-POST /api/telecare/reports
-
-GET  /api/telecare/analyses
-POST /api/telecare/analyses
-
-GET  /api/telecare/notifications
-POST /api/telecare/notifications
-
-GET  /api/telecare/chat-messages?consultationId={guid}&page=1&pageSize=50
-GET  /api/telecare/chat-messages/{messageId}
-POST /api/telecare/chat-messages
-GET  /api/telecare/ice-servers?consultationId={guid}
+GET    /api/products
+GET    /api/products/{id}
+POST   /api/products
+PUT    /api/products/{id}
+DELETE /api/products/{id}
 ```
 
 Chat geçmişi yalnızca görüşmenin atanmış doktoru veya hastası tarafından sorgulanabilir. `senderRole` (`Doctor`/`Patient`), `sentAfter` ve `sentBefore` (UTC ISO 8601) filtreleri desteklenir. `page` 1’den başlar; `pageSize` 1–100 arasındadır. Sonuçlar gönderim zamanına göre sıralanır ve `items`, `page`, `pageSize`, `totalCount` alanlarını içerir.
@@ -286,6 +273,8 @@ Chat geçmişi yalnızca görüşmenin atanmış doktoru veya hastası tarafınd
 ```text
 GET /api/telecare/chat-messages?consultationId={guid}&senderRole=Doctor&sentAfter=2026-01-01T00:00:00Z&page=1&pageSize=20
 ```
+
+`PUT` mevcut kaydı günceller; `DELETE` kaydı fiziksel olarak silmez, `IsDeleted`/`DeletedAt` alanlarını işaretler ve varsayılan sorgulardan gizler. Soft delete alanları için `AddSoftDeleteColumns` EF migration’ı eklenmiştir. Yetkilendirme kaynağa göre uygulanır: hastalar kendi profillerini güncelleyip silebilir; doktorlar kendi profillerini yönetebilir ve atanmış hastaya ait tıbbi kayıtları güncelleyebilir/silebilir; chat mesajını yalnızca gönderen düzenleyebilir veya silebilir. Ürün uçları giriş yapmış kullanıcı gerektirir.
 
 Chat mesajı oluştururken yalnızca `consultationId` ve `message` gönderilir; gönderen kimliği ve rolü JWT’den alınır.
 

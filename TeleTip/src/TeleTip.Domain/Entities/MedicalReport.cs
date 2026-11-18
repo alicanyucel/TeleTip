@@ -42,5 +42,18 @@ namespace MyProject.Domain.Entities
                 IssuedAt = DateTime.UtcNow
             });
         }
+
+        public Result UpdateDetails(string title, string content)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+                return Result.Failure(Error.Validation(nameof(Title), "Title cannot be empty."));
+            if (string.IsNullOrWhiteSpace(content))
+                return Result.Failure(Error.Validation(nameof(Content), "Content cannot be empty."));
+
+            Title = title.Trim();
+            Content = content.Trim();
+            MarkUpdated();
+            return Result.Success();
+        }
     }
 }

@@ -150,6 +150,54 @@ public sealed class TeleCareSecurityIntegrationTests
         content.RootElement.ToString().Should().NotContain("unrelated private message");
     }
 
+    [Fact]
+    public async Task Patient_CanUpdateOwnProfile_ButCannotUpdateAnotherPatient()
+    {
+        await using var application = await SecurityTestApplication.StartAsync();
+        var patient = Patient.Create("Original", "Patient", new DateOnly(1990, 1, 1)).Value;
+        var otherPatient = Patient.Create("Other", "Patient", new DateOnly(1991, 1, 1)).Value;
+        await application.SeedAsync(patient, otherPatient);
+        application.AuthenticateAs("Patient", patient.Id);
+
+        var ownResponse = await application.Client.PutAsJsonAsync($"/api/telecare/patients/{patient.Id}", new
+        {
+            firstName = "Updated",
+            lastName = "Patient",
+            dateOfBirth = "1990-01-01",
+            phoneNumber = "555-0100",
+            email = "updated@example.test"
+        });
+        var otherResponse = await application.Client.PutAsJsonAsync($"/api/telecare/patients/{otherPatient.Id}", new
+        {
+            firstName = "Tampered",
+            lastName = "Patient",
+            dateOfBirth = "1991-01-01"
+        });
+
+        ownResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        otherResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var updatedPatient = await application.FindPatientAsync(patient.Id);
+        updatedPatient!.FirstName.Should().Be("Updated");
+    }
+
+    [Fact]
+    public async Task Patient_DeleteEndpointSoftDeletesOwnRecordAndHidesItFromQueries()
+    {
+        await using var application = await SecurityTestApplication.StartAsync();
+        var patient = Patient.Create("Test", "Patient", new DateOnly(1990, 1, 1)).Value;
+        await application.SeedAsync(patient);
+        application.AuthenticateAs("Patient", patient.Id);
+
+        var response = await application.Client.DeleteAsync($"/api/telecare/patients/{patient.Id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await application.FindPatientAsync(patient.Id)).Should().BeNull();
+        var deletedPatient = await application.FindPatientIgnoringFiltersAsync(patient.Id);
+        deletedPatient.Should().NotBeNull();
+        deletedPatient!.IsDeleted.Should().BeTrue();
+        deletedPatient.DeletedAt.Should().NotBeNull();
+    }
+
     private sealed class SecurityTestApplication : IAsyncDisposable
     {
         private readonly WebApplication _application;
@@ -204,6 +252,20 @@ public sealed class TeleCareSecurityIntegrationTests
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.AddRange(entities);
             await db.SaveChangesAsync();
+        }
+
+        public async Task<Patient?> FindPatientAsync(Guid id)
+        {
+            await using var scope = _application.Services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            return await db.Patients.SingleOrDefaultAsync(patient => patient.Id == id);
+        }
+
+        public async Task<Patient?> FindPatientIgnoringFiltersAsync(Guid id)
+        {
+            await using var scope = _application.Services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            return await db.Patients.IgnoreQueryFilters().SingleOrDefaultAsync(patient => patient.Id == id);
         }
 
         public async ValueTask DisposeAsync()

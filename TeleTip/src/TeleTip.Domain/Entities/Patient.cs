@@ -37,5 +37,23 @@ namespace MyProject.Domain.Entities
                 Email = email
             });
         }
+
+        public Result UpdateProfile(string firstName, string lastName, DateOnly dateOfBirth, string? phoneNumber, string? email)
+        {
+            if (string.IsNullOrWhiteSpace(firstName))
+                return Result.Failure(Error.Validation(nameof(FirstName), "First name cannot be empty."));
+            if (string.IsNullOrWhiteSpace(lastName))
+                return Result.Failure(Error.Validation(nameof(LastName), "Last name cannot be empty."));
+            if (dateOfBirth > DateOnly.FromDateTime(DateTime.UtcNow))
+                return Result.Failure(Error.Validation(nameof(DateOfBirth), "Date of birth cannot be in the future."));
+
+            FirstName = firstName.Trim();
+            LastName = lastName.Trim();
+            DateOfBirth = dateOfBirth;
+            PhoneNumber = phoneNumber;
+            Email = email;
+            MarkUpdated();
+            return Result.Success();
+        }
     }
 }

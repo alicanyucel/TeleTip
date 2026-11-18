@@ -48,5 +48,22 @@ namespace MyProject.Domain.Entities
                 ExpiresAt = expiresAt
             });
         }
+
+        public Result UpdateDetails(string medicationName, string dosage, string instructions, DateTime? expiresAt)
+        {
+            if (string.IsNullOrWhiteSpace(medicationName))
+                return Result.Failure(Error.Validation(nameof(MedicationName), "Medication name cannot be empty."));
+            if (string.IsNullOrWhiteSpace(dosage))
+                return Result.Failure(Error.Validation(nameof(Dosage), "Dosage cannot be empty."));
+            if (string.IsNullOrWhiteSpace(instructions))
+                return Result.Failure(Error.Validation(nameof(Instructions), "Instructions cannot be empty."));
+
+            MedicationName = medicationName.Trim();
+            Dosage = dosage.Trim();
+            Instructions = instructions.Trim();
+            ExpiresAt = expiresAt;
+            MarkUpdated();
+            return Result.Success();
+        }
     }
 }

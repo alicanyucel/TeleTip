@@ -36,6 +36,16 @@ namespace MyProject.Domain.Entities
                 SentAt = DateTime.UtcNow
             });
         }
+
+        public Result EditMessage(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+                return Result.Failure(Error.Validation(nameof(Message), "Message cannot be empty."));
+
+            Message = message.Trim();
+            MarkUpdated();
+            return Result.Success();
+        }
     }
 
     public enum ConsultationParticipantRole

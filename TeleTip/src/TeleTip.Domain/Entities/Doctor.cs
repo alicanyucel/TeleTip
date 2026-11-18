@@ -43,5 +43,26 @@ namespace MyProject.Domain.Entities
                 Email = email
             });
         }
+
+        public Result UpdateProfile(string firstName, string lastName, string specialization, string licenseNumber, string? phoneNumber, string? email)
+        {
+            if (string.IsNullOrWhiteSpace(firstName))
+                return Result.Failure(Error.Validation(nameof(FirstName), "First name cannot be empty."));
+            if (string.IsNullOrWhiteSpace(lastName))
+                return Result.Failure(Error.Validation(nameof(LastName), "Last name cannot be empty."));
+            if (string.IsNullOrWhiteSpace(specialization))
+                return Result.Failure(Error.Validation(nameof(Specialization), "Specialization cannot be empty."));
+            if (string.IsNullOrWhiteSpace(licenseNumber))
+                return Result.Failure(Error.Validation(nameof(LicenseNumber), "License number cannot be empty."));
+
+            FirstName = firstName.Trim();
+            LastName = lastName.Trim();
+            Specialization = specialization.Trim();
+            LicenseNumber = licenseNumber.Trim();
+            PhoneNumber = phoneNumber;
+            Email = email;
+            MarkUpdated();
+            return Result.Success();
+        }
     }
 }
